@@ -79,15 +79,16 @@ async function build() {
   const i = await img("ok"); if (i) { const im = row.addImage(i); const z = big ? 72 : 40; im.imageSize = new Size(z, z); row.addSpacer(10) }
   const col = row.addStack(); col.layoutVertically();
   const dayTxt = (p.isToday ? "今日" : "聽日") + " · 星期" + "日一二三四五六"[p.day.getDay()];
-  const d1 = col.addText(dayTxt + " · " + lab); d1.font = Font.boldSystemFont(big ? 13 : 11); d1.textColor = late ? C.berry : C.dim; d1.lineLimit = 1; d1.minimumScaleFactor = 0.7;
-  if (target) { const dt = col.addDate(target); dt.applyTimerStyle(); dt.font = Font.heavyRoundedSystemFont(fam === "small" ? 20 : big ? 30 : 22); dt.textColor = C.ink; dt.minimumScaleFactor = 0.5 }
-  else { const t2 = col.addText(late ? "應該 " + hm(p.leave) + " 出門" : "一路順風 🐾"); t2.font = Font.heavyRoundedSystemFont(big ? 22 : 18); t2.textColor = late ? C.berry : C.ink }
+  const d0 = col.addText(dayTxt); d0.font = Font.mediumSystemFont(big ? 12 : 10); d0.textColor = C.dim;
+  const d1 = col.addText(lab); d1.font = Font.boldSystemFont(big ? 14 : 12); d1.textColor = late ? C.berry : C.dim; d1.lineLimit = 1; d1.minimumScaleFactor = 0.7;
+  row.addSpacer();
+  const right = row.addStack(); right.layoutVertically();
+  if (target) { const dt = right.addDate(target); dt.applyTimerStyle(); dt.rightAlignText(); dt.font = Font.heavyRoundedSystemFont(fam === "small" ? 24 : big ? 46 : 36); dt.textColor = C.ink; dt.minimumScaleFactor = 0.5; dt.lineLimit = 1 }
+  else { const t2 = right.addText(late ? "應該 " + hm(p.leave) + " 出門" : "一路順風 🐾"); t2.rightAlignText(); t2.font = Font.heavyRoundedSystemFont(big ? 26 : 20); t2.textColor = late ? C.berry : C.ink }
   if (fam !== "small") {
     w.addSpacer(big ? 10 : 6);
     const BWID = big ? 320 : 300;
     const bar = w.addImage(drawBar(p, now, BWID, null)); bar.imageSize = new Size(BWID, 18); bar.centerAlignImage();
-    const ends = w.addStack(); const e1 = ends.addText(hm(p.wake) + " 起身"); ends.addSpacer(); const e2 = ends.addText(hm(p.leave) + " 出門"); ends.addSpacer(); const e3 = ends.addText(hm(p.arriveEst) + " 到");
-    for (const e of [e1, e2, e3]) { e.font = Font.mediumSystemFont(10); e.textColor = C.dim }
     w.addSpacer(big ? 8 : 4);
     // milestone recap：未做完嘅，最多 3（中型）/ 6（大型）項
     const rows = p.pts.filter(x => x.e > now).map(x => ({ t: x.s, n: clean(x.n), m: Math.round((x.e - x.s) / MIN), now: now >= x.s }));
@@ -101,7 +102,7 @@ async function build() {
     }
     w.addSpacer(big ? 8 : 4);
     const info = w.addStack(); info.spacing = 10;
-    const a = info.addText(hm(p.leave) + " 出門" + (p.pick ? " · 趕 " + hm(p.pick) : "")); a.font = Font.boldSystemFont(12); a.textColor = C.ginger;
+    const a = info.addText(hm(p.leave) + " 出門 → " + hm(p.arriveEst) + " 到" + (p.pick ? " · 趕 " + hm(p.pick) : "")); a.font = Font.boldSystemFont(12); a.textColor = C.ginger;
     if (alarm && alarm.at) {
       const w2 = p.wake.getHours() * 60 + p.wake.getMinutes();
       const hit = (alarm.alarms || []).filter(t => { const [h, m] = t.split(":").map(Number); const d = w2 - (h * 60 + m); return (d >= 0 && d <= 120) || (d < 0 && d + 1440 <= 120) }).sort().pop();
