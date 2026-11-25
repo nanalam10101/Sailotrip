@@ -43,6 +43,9 @@ h2{font:900 22px/1.2 "Noto Sans TC",sans-serif;margin:22px 0 10px}
 .adj{display:flex;gap:8px;flex-wrap:wrap}
 .log{background:#fff;border:1.5px solid var(--line);border-radius:24px;padding:16px;margin-top:20px}
 .log .btns{margin-top:10px}
+.tipbar{display:flex;align-items:center;gap:6px;background:var(--sky);border-radius:14px;padding:4px 6px 4px 12px;margin-top:12px}
+.tiplink{flex:1;text-align:left;font-size:14px;font-weight:700;color:var(--ink);padding:8px 0}
+#a2hsX{width:36px;height:36px;border-radius:50%;color:var(--dim)}
 .chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
 .chips button{background:var(--card);border-radius:16px;padding:12px 8px;font-weight:700;font-size:15px;min-height:52px;border:2px solid transparent}
 .chips button.on{border-color:var(--ginger);background:#fff3e8}
@@ -407,10 +410,10 @@ function renderHome() {
   const dayWord = dkey(p.day) === dkey(now) ? "今日" : (p.day - new Date(now).setHours(0, 0, 0, 0) <= 86400000 ? "聽日" : ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()]);
   if (out || now > p.wake) setHTML("alarmCard", "");
   else if (a.st === "ok") setHTML("alarmCard", `<div class="card ok"><img src="${cat("got")}" alt=""><div class="t"><strong>✓ 你已經 set 咗鬧鐘</strong><small>細佬喺你 iPhone 搵到 <b>${a.hit}</b> 嘅鬧鐘，趕得切${dayWord} ${hm(p.wake)} 起身。最後檢查：${hm(a.at)}${a.stale ? "（好耐冇更新，開一開 Clock App）" : ""}</small></div></div>`);
-  else setHTML("alarmCard", `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未知你 set 咗鬧鐘未" : "⚠️ 未 set 鬧鐘"}</strong><small>${a.st === "none" ? "做一次進階設定，細佬就會自動幫你 check" : `${dayWord}要 ${hm(p.wake)} 起身，但搵唔到 ${hm(p.wake)} 或之前嘅鬧鐘。呀妹：「你唔 set 我就唔瞓！」`}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>📖 教我 set</button>` : `<a href="${sc}">開時鐘 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`);
+  else setHTML("alarmCard", `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未知你 set 咗鬧鐘未" : "⚠️ 未 set 鬧鐘"}</strong><small>${a.st === "none" ? "做一次進階設定，細佬就會自動幫你 check" : `${dayWord}要 ${hm(p.wake)} 起身，但搵唔到 ${hm(p.wake)} 或之前嘅鬧鐘。呀妹：「你唔 set 我就唔瞓！」`}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>⚙️ 進階：教我連接（選用）</button>` : `<a href="${sc}">開時鐘 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`);
   // 未加到主畫面就提一次
   const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
-  setHTML("a2hsCard", !standalone && !S.a2hsHide ? `<div class="card" style="background:var(--sky)"><img src="${cat("who")}" alt=""><div class="t"><strong>加喵喵出行到主畫面</strong><small>好似 app 咁一撳就開，全螢幕。</small><div class="act"><button type="button" data-a2hs>教我加</button><button type="button" id="a2hsX">唔使喇</button></div></div></div>` : "");
+  setHTML("a2hsCard", !standalone && !S.a2hsHide ? `<div class="tipbar"><button type="button" data-a2hs class="tiplink">📲 可以加到主畫面，好似 app 咁用 ›</button><button type="button" id="a2hsX" aria-label="唔使">✕</button></div>` : "");
   // buttons
   $("bOut").classList.toggle("done", !!out); $("bOutT").textContent = out ? "已出門 ✓" : "出咗門";
   $("bTaxiT").textContent = lg && lg.taxi ? "已記的士" : "搭咗的士";
@@ -613,7 +616,7 @@ $("msRows").addEventListener("change", e => { const r = e.target.closest(".prow"
 $("addMs").onclick = () => { S.ms.push({ n: "新項目", m: 5 }); save(); renderMs() };
 $("fTaxi").onchange = e => { S.taxi = Math.max(0, +e.target.value || 0); save() };
 document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { step = +b.dataset.go; renderSetup(); scrollTo(0, 0) });
-$("finish").onclick = () => { S.setup = true; save(); show("home"); if (!S.alarm && !S.guideSeen) openGuide(0); else popup("got", "設定好！", "細佬同呀妹會幫你睇住時間 🐾") };
+$("finish").onclick = () => { S.setup = true; save(); show("home"); popup("got", "設定好！", "細佬同呀妹會幫你睇住時間 🐾") };
 
 // ---------- 捷徑教學 ----------
 const CP = w => `<span class="cp"><code>${esc(MYURL())}</code><button type="button" data-copy="${w}">Copy</button></span>`;
@@ -630,12 +633,12 @@ let gi = 0;
 function openGuide(i = 0) { gi = i; S.guideSeen = true; save(); drawGuide(); $("ov").classList.remove("hide") }
 function drawGuide() {
   const [pose, t, sub, body] = GUIDE[gi], last = gi === GUIDE.length - 1;
-  $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="捷徑教學"><div class="gh"><img src="${cat(pose)}" alt=""><div><small>${gi + 1} / ${GUIDE.length}</small><b>${t}</b><small>${sub}</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb">${body()}</div><div class="gf"><button type="button" data-g="prev" ${gi ? "" : "disabled style='opacity:.4'"}>上一步</button><div class="dots">${GUIDE.map((_, j) => `<i class="${j === gi ? "on" : ""}"></i>`).join("")}</div><button class="pri" type="button" data-g="${last ? "x" : "next"}">${last ? "完成" : "下一步"}</button></div></div>`;
+  $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="捷徑教學"><div class="gh"><img src="${cat(pose)}" alt=""><div><small>${gi + 1} / ${GUIDE.length}</small><b>${t}</b><small>${sub}</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb">${body()}</div><div class="gf">${gi ? `<button type="button" data-g="prev">上一步</button>` : `<button type="button" data-g="x">遲啲先</button>`}<div class="dots">${GUIDE.map((_, j) => `<i class="${j === gi ? "on" : ""}"></i>`).join("")}</div><button class="pri" type="button" data-g="${last ? "x" : "next"}">${last ? "完成" : "下一步"}</button></div></div>`;
 }
 $("ov").addEventListener("click", async e => {
   const g = e.target.closest("[data-g]"), c = e.target.closest("[data-copy]");
   if (c) { try { await navigator.clipboard.writeText(MYURL()); c.textContent = "Copied ✓" } catch (err) { c.textContent = "長按上面複製" } return }
-  if (!g) { if (e.target === $("ov") && $("ov").querySelector(".guide")) $("ov").classList.add("hide"); return }
+  if (!g) { if (e.target === $("ov")) $("ov").classList.add("hide"); return }
   if (g.dataset.g === "x") { $("ov").classList.add("hide"); syncAlarm().then(() => view === "home" && renderHome()); return }
   gi = Math.max(0, Math.min(GUIDE.length - 1, gi + (g.dataset.g === "next" ? 1 : -1))); drawGuide();
 });
@@ -651,7 +654,7 @@ function openA2HS() {
     <li>向下碌，撳 <b>Add to Home Screen</b><i class="zh">（加入主畫面）</i>。如果見唔到，撳最底 <b>Edit Actions</b><i class="zh">（編輯動作）</i> 加返佢</li>
     <li>名會自動係「<b>喵喵出行</b>」，撳右上 <b>Add</b><i class="zh">（加入）</i></li>
     <li>返主畫面，搵「哇！」細佬個 icon，以後由佢開 🐱</li>
-  </ol><div class="tip">✓ 你嘅設定、獎勵記錄同鬧鐘連接都會自動跟埋過去，唔使重新設定。</div></div><div class="gf"><span style="flex:1"></span><button class="pri" type="button" data-g="x">知道</button></div></div>`;
+  </ol><div class="tip">✓ 你嘅設定、獎勵記錄同鬧鐘連接都會自動跟埋過去，唔使重新設定。</div></div><div class="gf"><span class="muted" style="flex:1;margin:0">撳外面都可以閂</span><button class="pri" type="button" data-g="x">好</button></div></div>`;
   $("ov").classList.remove("hide");
 }
 
