@@ -22,13 +22,16 @@ function plan(S, now, etas) {
   let day = d0;
   for (let i = 0; i < 8; i++) { const d = new Date(d0); d.setDate(d0.getDate() + i); if (!S.days.includes(d.getDay())) continue; if (i === 0 && now > +atTime(d, S.arrive) + 90 * MIN) continue; day = d; break }
   const key = dkey(day), arrive = atTime(day, S.arrive);
-  const legSum = S.legs.reduce((a, l) => a + (+l.m || 0), 0), total = legSum + (+S.buffer || 0), adj = ((S.adj || {})[key] || 0) * MIN;
-  let leave = new Date(arrive - total * MIN + adj), pick = null;
+  const legSum = S.legs.reduce((a, l) => a + (+l.m || 0), 0), total = legSum + (+S.buffer || 0);
+  let leave = new Date(arrive - total * MIN), pick = null;
   const li = S.legs.findIndex(l => l.live && l.live.stop);
   if (li >= 0 && etas.length) {
     const pre = S.legs.slice(0, li).reduce((a, l) => a + l.m, 0), post = S.legs.slice(li).reduce((a, l) => a + l.m, 0);
-    const ok = etas.map(e => new Date(e)).filter(e => +e - pre * MIN >= +now - MIN && +e + post * MIN <= +arrive + adj);
-    if (ok.length) { const e = ok[ok.length - 1]; if (Math.abs(e - pre * MIN - leave) < 90 * MIN) { pick = e; leave = new Date(e - pre * MIN) } }
+    // 實時班次：九巴等只會俾未來幾班車。名單要有一班「太遲」嘅車，先確定最後一班趕得切嘅係真正嗰班；否則照設定時間
+    const all = etas.map(e => new Date(e)).sort((a, b) => a - b);
+    const ok = all.filter(e => +e - pre * MIN >= +now - MIN && +e + post * MIN <= +arrive);
+    const covered = all.some(e => +e + post * MIN > +arrive);
+    if (ok.length && covered) { const e = ok[ok.length - 1]; pick = e; leave = new Date(e - pre * MIN) }
   }
   const msSum = S.ms.reduce((a, m) => a + (+m.m || 0), 0);
   const pts = []; let t = +leave - msSum * MIN;
