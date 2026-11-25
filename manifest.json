@@ -1,0 +1,9 @@
+{
+  "name": "貓貓叫你出門",
+  "short_name": "貓貓出門",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fffaf5",
+  "theme_color": "#ffe98a",
+  "icons": [{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }]
+}
