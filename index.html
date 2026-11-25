@@ -168,7 +168,6 @@ nav svg{width:24px;height:24px}
     <div class="steps" id="stepBar"><i></i><i></i><i></i></div>
     <div id="st1">
       <div class="intro"><img src="/cats/ok.webp" alt=""><p><b>細佬：</b>「話我知你點返工，我幫你計幾點要出門。搭港鐵、巴士、小巴仲可以睇實時班次。」</p></div>
-      <details class="imp" id="impBox"><summary>📥 已經喺 Safari 設定過？貼上設定碼</summary><p class="muted">喺 Safari 開喵喵出行 →「設定」第 3 步 → Copy 設定碼，再貼喺度。設定、獎勵記錄同鬧鐘 key 都會一齊搬過嚟。</p><textarea id="impCode" rows="3" placeholder="貼上設定碼"></textarea><button class="pill" type="button" id="impBtn" style="background:var(--ginger);color:#fff;min-height:44px;margin-top:6px">匯入</button> <span class="muted" id="impMsg"></span></details>
       <h1>你點返工？</h1>
       <div class="row2">
         <label class="field">要幾點到<input id="fArrive" type="time"></label>
@@ -197,8 +196,7 @@ nav svg{width:24px;height:24px}
       <h2>📲 加到主畫面</h2>
       <p class="muted">加咗之後，喵喵出行會好似 app 咁喺主畫面出現，全螢幕開，唔使每次開 Safari。</p>
       <button class="pill" type="button" data-a2hs style="background:var(--sky);min-height:44px">📖 教我加到主畫面</button>
-      <p class="muted">⚠️ 主畫面嘅 app 同 Safari 唔會共用設定。加之前先撳呢度 Copy 設定碼，喺主畫面 app 第一頁貼返就得：</p>
-      <button class="pill" type="button" id="expBtn" style="min-height:44px">📤 Copy 我嘅設定碼</button>
+      <p class="muted">你嘅設定會自動備份，加到主畫面之後一開就有，唔使再設定。</p>
       <h2>連接 iPhone 鬧鐘</h2>
       <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 Shortcut 幫手報返嚟。呢個係進階設定，唔做都用得 app。細佬只收鬧鐘時間同隨機 key，冇個人資料。</p>
       <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">⚙️ 進階：自動偵測鬧鐘（選用）</button>
@@ -292,7 +290,9 @@ const DEF = () => ({
 });
 let S;
 try { S = Object.assign(DEF(), JSON.parse(localStorage.getItem("catchumun") || "{}")) } catch (e) { S = DEF() }
-const save = () => { try { localStorage.setItem("catchumun", JSON.stringify(S)) } catch (e) {} };
+let _rt = 0;
+const pushRemote = () => { clearTimeout(_rt); _rt = setTimeout(() => { if (!S.setup) return; const s2 = JSON.parse(JSON.stringify(S)); delete s2.alarm; fetch("/api/state", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ k: S.key, s: s2 }) }).catch(() => {}) }, 2000) };
+const save = () => { try { localStorage.setItem("catchumun", JSON.stringify(S)) } catch (e) {} pushRemote() };
 const legSum = () => S.legs.reduce((a, l) => a + (+l.m || 0), 0);
 const msSum = () => S.ms.reduce((a, m) => a + (+m.m || 0), 0);
 
@@ -646,13 +646,12 @@ document.addEventListener("click", e => {
 });
 function openA2HS() {
   $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="加到主畫面"><div class="gh"><img src="${cat("ok")}" alt=""><div><b>加到主畫面</b><small>用 iPhone Safari，大約 10 秒</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb"><ol>
-    <li>如果已經喺 Safari 設定好：先去「設定」第 3 步撳 <b>📤 Copy 我嘅設定碼</b></li>
     <li>用 <b>Safari</b> 開 <code>${esc(location.host)}</code><i class="zh">（Chrome 唔得）</i></li>
     <li>撳底部或者網址列旁邊嘅 <b>Share</b><i class="zh">（分享）</i>掣：一個方格加向上箭咀 ⬆️</li>
     <li>向下碌，撳 <b>Add to Home Screen</b><i class="zh">（加入主畫面）</i>。如果見唔到，撳最底 <b>Edit Actions</b><i class="zh">（編輯動作）</i> 加返佢</li>
     <li>名會自動係「<b>喵喵出行</b>」，撳右上 <b>Add</b><i class="zh">（加入）</i></li>
     <li>返主畫面，搵「哇！」細佬個 icon，以後由佢開 🐱</li>
-  </ol><div class="tip">主畫面 app 第一次開，喺第一頁撳「📥 已經喺 Safari 設定過？」貼返設定碼，就唔使重新設定，鬧鐘捷徑都唔使改。</div></div><div class="gf"><span style="flex:1"></span><button class="pri" type="button" data-g="x">知道</button></div></div>`;
+  </ol><div class="tip">✓ 你嘅設定、獎勵記錄同鬧鐘連接都會自動跟埋過去，唔使重新設定。</div></div><div class="gf"><span style="flex:1"></span><button class="pri" type="button" data-g="x">知道</button></div></div>`;
   $("ov").classList.remove("hide");
 }
 
@@ -660,21 +659,6 @@ $("shareBtn").onclick = async () => {
   const url = location.origin, text = "細佬同呀妹幫你倒數出門 🐱 喵喵出行：";
   try { if (navigator.share) { await navigator.share({ title: "喵喵出行", text, url }); return } } catch (e) { if (e && e.name === "AbortError") return }
   try { await navigator.clipboard.writeText(text + url); $("shareBtn").textContent = "Copied ✓" } catch (e) { $("shareBtn").textContent = url }
-};
-
-// ---------- 設定碼（Safari ↔ 主畫面）----------
-$("expBtn").onclick = async () => {
-  const code = btoa(unescape(encodeURIComponent(JSON.stringify(S))));
-  try { await navigator.clipboard.writeText(code); $("expBtn").textContent = "Copied ✓ 去主畫面 app 貼上" } catch (e) { $("impCode").value = code; $("expBtn").textContent = "Copy 唔到，請長按複製第一頁個框" }
-};
-$("impBtn").onclick = () => {
-  try {
-    const d = JSON.parse(decodeURIComponent(escape(atob($("impCode").value.trim()))));
-    if (!d || !Array.isArray(d.legs) || !Array.isArray(d.ms) || !d.key) throw 0;
-    S = Object.assign(DEF(), d, { setup: true }); save();
-    $("impMsg").textContent = "✓ 匯入咗"; show("home"); syncAlarm().then(() => renderHome()); loadEta();
-    popup("got", "搬好屋喇！", "設定、獎勵記錄同鬧鐘 key 都搬咗過嚟 🐾");
-  } catch (e) { $("impMsg").textContent = "設定碼唔啱，再 copy 過" }
 };
 
 // ---------- views ----------
@@ -686,7 +670,17 @@ function show(v) {
   if (v === "setup") { step = S.setup ? step : 1; renderSetup() } if (v === "home") renderHome(); if (v === "reward") renderReward();
 }
 $("nav").addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (b) show(b.dataset.v) });
+// 主畫面 app／新機：網址帶 ?k= 就由雲端攞返設定
+const qk = new URLSearchParams(location.search).get("k");
+const keyURL = () => { try { history.replaceState(null, "", "/?k=" + S.key); const m = document.querySelector('link[rel="manifest"]'); if (m) m.href = "/api/manifest?k=" + S.key } catch (e) {} };
+async function restore(k) {
+  try { const r = await fetch("/api/state?k=" + k, { cache: "no-store" }); const d = await r.json(); if (d && d.s && d.s.key === k) { S = Object.assign(DEF(), d.s); try { localStorage.setItem("catchumun", JSON.stringify(S)) } catch (e) {} return true } } catch (e) {}
+  return false;
+}
 show(S.setup ? "home" : "setup");
+if (qk && /^[a-z0-9]{16,40}$/.test(qk) && (!S.setup || S.key !== qk)) {
+  restore(qk).then(ok => { if (ok) { show("home"); syncAlarm().then(() => renderHome()); loadEta(); popup("got", "歡迎返嚟！", "細佬幫你攞返晒設定同獎勵記錄 🐾") } keyURL() });
+} else { keyURL(); if (S.setup) pushRemote() }
 syncAlarm().then(() => view === "home" && renderHome());
 loadEta().then(() => view === "home" && renderHome());
 const tick = setInterval(() => { if (view === "home" && !document.hidden) renderHome() }, 1000);
