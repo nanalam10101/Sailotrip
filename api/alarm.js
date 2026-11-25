@@ -31,6 +31,7 @@ export default async function handler(req, res) {
     const r = await fetch(blobs[0].url + "?t=" + Date.now(), { cache: "no-store" });
     return res.status(200).json(await r.json());
   } catch (e) {
-    return res.status(500).json({ error: String(e.message || e) });
+    // 回 200 + error，方便 app 同 debug 睇到原因
+    return res.status(200).json({ alarms: null, error: String(e.message || e), hasToken: !!process.env.BLOB_READ_WRITE_TOKEN });
   }
 }
