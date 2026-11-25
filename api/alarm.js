@@ -24,14 +24,28 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.query && req.query.ping) return res.status(200).json({ ok: true, hasToken: !!tokenName(), blobVars: Object.keys(process.env).filter(k => /BLOB/.test(k)) });
   try {
-    const { put, list } = await import("@vercel/blob");
+    const { put, get } = await import("@vercel/blob");
+    const path = k => `alarm/${k}.json`;
+    // store 係 private 就用 private；唔得再試 public
+    const save = async (k, data) => {
+      const o = { addRandomSuffix: false, allowOverwrite: true, contentType: "application/json", token };
+      try { await put(path(k), JSON.stringify(data), { ...o, access: "private" }) }
+      catch (e) { if (!/private|public/i.test(String(e.message))) throw e; await put(path(k), JSON.stringify(data), { ...o, access: "public", cacheControlMaxAge: 60 }) }
+    };
+    const load = async k => {
+      for (const access of ["private", "public"]) {
+        try { const r = await get(path(k), { access, useCache: false, token }); if (!r) return null; if (r.statusCode === 200) return await new Response(r.stream).json() }
+        catch (e) { if (!/private|public|access/i.test(String(e.message))) throw e }
+      }
+      return null;
+    };
     // 有舊式 READ_WRITE_TOKEN 就用；冇就交俾 @vercel/blob 自己用新式 store 設定認證
     const token = (tokenName() && process.env[tokenName()]) || undefined;
     if (req.method === "GET" && req.query && req.query.a !== undefined) {
       const k = req.query.k;
       if (!okKey(k)) return res.status(200).json({ error: "bad key" });
       const data = { alarms: parseTimes(req.query.a), at: Date.now() };
-      await put(`alarm/${k}.json`, JSON.stringify(data), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json", cacheControlMaxAge: 60, token });
+      await save(k, data);
       return res.status(200).json({ ok: true, 細佬: "收到！", ...data });
     }
     if (req.method === "POST") {
@@ -41,17 +55,13 @@ export default async function handler(req, res) {
       const k = b.k || (req.query && req.query.k);
       if (!okKey(k)) return res.status(400).json({ error: "bad key" });
       const data = { alarms: parseTimes(b.alarms), at: Date.now() };
-      await put(`alarm/${k}.json`, JSON.stringify(data), {
-        access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json", cacheControlMaxAge: 60, token,
-      });
+      await save(k, data);
       return res.status(200).json({ ok: true, ...data });
     }
     const k = req.query && req.query.k;
     if (!okKey(k)) return res.status(400).json({ error: "bad key" });
-    const { blobs } = await list({ prefix: `alarm/${k}.json`, limit: 1, token });
-    if (!blobs.length) return res.status(200).json({ alarms: null });
-    const r = await fetch(blobs[0].url + "?t=" + Date.now(), { cache: "no-store" });
-    return res.status(200).json(await r.json());
+    const d = await load(k);
+    return res.status(200).json(d || { alarms: null });
   } catch (e) {
     // 回 200 + error，方便 app 同 debug 睇到原因
     return res.status(200).json({ alarms: null, error: String(e.message || e) });
