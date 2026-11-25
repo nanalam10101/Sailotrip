@@ -43,6 +43,9 @@ h2{font:900 22px/1.2 "Noto Sans TC",sans-serif;margin:22px 0 10px}
 .adj{display:flex;gap:8px;flex-wrap:wrap}
 .log{background:#fff;border:1.5px solid var(--line);border-radius:24px;padding:16px;margin-top:20px}
 .log .btns{margin-top:10px}
+.chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.chips button{background:var(--card);border-radius:16px;padding:12px 8px;font-weight:700;font-size:15px;min-height:52px;border:2px solid transparent}
+.chips button.on{border-color:var(--ginger);background:#fff3e8}
 .adjrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
 .adjrow small{display:block;color:var(--dim);font-size:13px}
 .adj button{background:var(--card);border-radius:99px;padding:8px 14px;font-weight:700;font-size:14px;min-height:40px}
@@ -216,7 +219,8 @@ nav svg{width:24px;height:24px}
       <button id="bTaxi" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-5l-2-5H7l-2 5zM9 7V5h6v2M5 12h14"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg><span id="bTaxiT">搭咗的士</span></button>
       <button id="bUndo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9h11a5 5 0 0 1 0 10H8M4 9l4-4M4 9l4 4"/></svg>重設今日</button>
       </div>
-      <div class="adjrow"><div><b>臨時改出門時間</b><small>例如要早啲到。只改呢一日，唔影響設定</small></div><div class="adj"><button id="adjM" type="button">早 5 分出門</button><button id="adjP" type="button">遲 5 分出門</button></div></div>
+      <div id="retro" class="hide"></div>
+      <div class="adjrow"><div><b id="adjTitle">臨時改出門時間</b><small>例如要早啲到。只改呢一日；改咗之後，準時會以新時間計，唔算遲到</small></div><div class="adj"><button id="adjM" type="button">早 5 分出門</button><button id="adjP" type="button">遲 5 分出門</button></div></div>
       <p class="muted" id="adjNow"></p>
     </section>
     <h2 id="tlTitle">今日時間線</h2>
@@ -397,9 +401,21 @@ function renderHome() {
   // buttons
   $("bOut").classList.toggle("done", !!out); $("bOutT").textContent = out ? "已出門 ✓" : "出咗門";
   $("bTaxiT").textContent = lg && lg.taxi ? "已記的士" : "搭咗的士";
-  const ad = S.adj[p.key] || 0;
+  const ad = S.adj[p.key] || 0; $("adjTitle").textContent = `臨時改${dayWord}出門時間`;
   $("adjNow").textContent = ad ? `已調整：${dayWord}${ad < 0 ? "早" : "遲"} ${Math.abs(ad)} 分鐘出門（${hm(p.leave)}）。撳「重設今日」可以還原。` : "";
-  $("logHint").textContent = out ? (lg.on ? `${hm(new Date(lg.at))} 出咗門，準時 ✓` : `${hm(new Date(lg.at))} 出咗門`) + (lg.taxi ? "，搭咗的士" : "") : "出門嗰下撳「出咗門」，細佬幫你計準時同慳咗幾多。";
+  // 今日補記：今日係返工日，而且已過咗今日出門時間 30 分鐘
+  const t0d = new Date(now); t0d.setHours(0, 0, 0, 0);
+  const tKey = dkey(t0d), tWork = S.days.includes(t0d.getDay());
+  const tLeave = +atTime(t0d, S.arrive) - (legSum() + (+S.buffer || 0)) * MIN + (S.adj[tKey] || 0) * MIN;
+  const retro = tWork && +now > tLeave + 30 * MIN && tKey !== p.key;
+  $("retro").classList.toggle("hide", !retro);
+  document.querySelector(".log .btns").classList.toggle("hide", retro);
+  if (retro) {
+    const tl = S.log[tKey] || {}, cur = tl.off ? "off" : tl.taxi ? "taxi" : tl.out ? (tl.on ? "on" : "late") : "";
+    const opts = [["on", "✓ 準時出門"], ["late", "⏰ 遲咗出門"], ["taxi", "🚕 搭咗的士"], ["off", "🏠 今日唔使返工"]];
+    setHTML("retro", `<p class="muted" style="margin:0">今日（${pad(t0d.getDate())}/${pad(t0d.getMonth() + 1)}）${hm(new Date(tLeave))} 應該出門。今日點樣？撳一個補記：</p><div class="chips">${opts.map(([k, l]) => `<button type="button" data-r="${k}" class="${cur === k ? "on" : ""}">${l}</button>`).join("")}</div>`);
+  }
+  $("logHint").textContent = retro ? "今日嘅出門時間已過，可以喺下面補記。" : out ? (lg.on ? `${hm(new Date(lg.at))} 出咗門，準時 ✓` : `${hm(new Date(lg.at))} 出咗門`) + (lg.taxi ? "，搭咗的士" : "") : "出門嗰下撳「出咗門」，細佬幫你計準時同慳咗幾多。";
   // timeline
   $("tlTitle").textContent = dayWord + "時間線";
   const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -415,7 +431,7 @@ function popup(pose, title, text) {
 }
 function stats() {
   const keys = Object.keys(S.log).sort(), noTaxi = keys.filter(k => S.log[k].out && !S.log[k].taxi).length;
-  let streak = 0; for (let i = keys.length - 1; i >= 0; i--) { const l = S.log[keys[i]]; if (l.out && l.on && !l.taxi) streak++; else break }
+  let streak = 0; for (let i = keys.length - 1; i >= 0; i--) { const l = S.log[keys[i]]; if (l.off) continue; if (l.out && l.on && !l.taxi) streak++; else break }
   return { noTaxi, streak, saved: noTaxi * (+S.taxi || 0), onTime: keys.filter(k => S.log[k].on).length };
 }
 $("bOut").onclick = () => {
@@ -437,6 +453,19 @@ $("bTaxi").onclick = () => {
   if (lg.taxi) popup("sad", "記低咗搭的士", `今日用咗大約 $${S.taxi}，細佬話聽日一齊準時！`);
   renderHome();
 };
+$("retro").addEventListener("click", e => {
+  const b = e.target.closest("[data-r]"); if (!b) return;
+  const t0d = new Date(); t0d.setHours(0, 0, 0, 0); const k = dkey(t0d), r = b.dataset.r, prev = S.log[k];
+  const same = prev && ((r === "off" && prev.off) || (r === "taxi" && prev.taxi) || (r === "on" && prev.out && prev.on && !prev.taxi) || (r === "late" && prev.out && !prev.on && !prev.taxi));
+  if (same) { delete S.log[k]; save(); renderHome(); return }
+  S.log[k] = r === "off" ? { off: true } : { out: true, on: r === "on", taxi: r === "taxi", at: Date.now(), retro: true };
+  save(); renderHome();
+  const st = stats();
+  if (r === "on") popup("yeah", `準時出門！連續 ${st.streak} 日`, `你成功 ${st.noTaxi} 日冇搭的士，慳返 $${st.saved.toLocaleString()} 🎉`);
+  if (r === "late") popup("wow", "遲咗少少都唔緊要", `今日冇搭的士，慳返 $${S.taxi}！你成功 ${st.noTaxi} 日冇搭的士，慳返 $${st.saved.toLocaleString()}`);
+  if (r === "taxi") popup("sad", "記低咗搭的士", `今日用咗大約 $${S.taxi}，細佬話聽日一齊準時！`);
+  if (r === "off") popup("comfy", "今日唔使返工", "好好休息～唔會計入記錄");
+});
 $("bUndo").onclick = () => { const p = plan(new Date()); delete S.log[p.key]; delete S.adj[p.key]; save(); renderHome() };
 $("adjM").onclick = () => { const p = plan(new Date()); S.adj[p.key] = (S.adj[p.key] || 0) - 5; save(); renderHome() };
 $("adjP").onclick = () => { const p = plan(new Date()); S.adj[p.key] = (S.adj[p.key] || 0) + 5; save(); renderHome() };
@@ -447,7 +476,7 @@ function renderReward() {
   $("stats").innerHTML = `<div class="stat" style="background:var(--butter)"><small>連續準時</small><b>${st.streak} 日</b></div><div class="stat" style="background:var(--mint)"><small>冇搭的士</small><b>${st.noTaxi} 日</b></div><div class="stat" style="background:var(--sky);grid-column:span 2"><small>慳返</small><b>$${st.saved.toLocaleString()}</b><small>${st.noTaxi} 日 × $${S.taxi}</small></div>`;
   const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - 21);
   let html = ["一", "二", "三", "四", "五", "六", "日"].map(x => `<div>${x}</div>`).join("");
-  for (let i = 0; i < 28; i++) { const x = new Date(start); x.setDate(start.getDate() + i); const l = S.log[dkey(x)]; const c = !l ? "" : l.taxi ? "taxi" : l.on ? "on" : "late"; html += `<div><i class="${c}"></i>${x.getDate()}</div>` }
+  for (let i = 0; i < 28; i++) { const x = new Date(start); x.setDate(start.getDate() + i); const l = S.log[dkey(x)]; const c = !l || l.off ? "" : l.taxi ? "taxi" : l.on ? "on" : "late"; html += `<div><i class="${c}"></i>${x.getDate()}</div>` }
   $("cal").innerHTML = html;
   $("rewardCat").src = cat(st.streak >= 3 ? "cool" : st.noTaxi ? "yeah" : "wait");
 }
