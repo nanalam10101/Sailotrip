@@ -200,10 +200,10 @@ nav svg{width:24px;height:24px}
       <p class="muted">加咗之後，喵喵出行會好似 app 咁喺主畫面出現，全螢幕開，唔使每次開 Safari。</p>
       <button class="pill" type="button" data-a2hs style="background:var(--sky);min-height:44px">📖 教我加到主畫面</button>
       <p class="muted">你嘅設定會自動備份，加到主畫面之後一開就有，唔使再設定。</p>
-      <h2>📱 主畫面 widget</h2>
-      <p class="muted">唔使開 app，喺 iPhone 主畫面都見到細佬、倒數同鬧鐘狀態。選用。</p>
-      <button class="pill" type="button" data-widget style="background:var(--mint);min-height:44px">📖 教我裝 widget</button>
-      <h2>連接 iPhone 鬧鐘</h2>
+      <h2>📱 主畫面 widget <span class="pill" style="background:var(--lilac);font-size:12px;padding:3px 10px">進階 · 選用</span></h2>
+      <p class="muted">唔使開 app，喺 iPhone 主畫面都見到倒數、milestone 同鬧鐘狀態。要另外裝免費 app「Scriptable」。</p>
+      <button class="pill" type="button" data-widget style="background:var(--mint);min-height:44px">⚙️ 進階：教我裝 widget</button>
+      <h2>連接 iPhone 鬧鐘 <span class="pill" style="background:var(--lilac);font-size:12px;padding:3px 10px">進階 · 選用</span></h2>
       <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 Shortcut 幫手報返嚟。呢個係進階設定，唔做都用得 app。細佬只收鬧鐘時間同隨機 key，冇個人資料。</p>
       <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">⚙️ 進階：自動偵測鬧鐘（選用）</button>
       <div class="imp" style="margin-top:12px"><b>你嘅鬧鐘 key</b>：<code id="keyNow"></code>
@@ -363,6 +363,17 @@ async function syncAlarm() {
 // ---------- live ETA ----------
 async function loadEta() {
   const l = S.legs.find(x => x.live && x.live.stop); if (!l) { live = { etas: [], at: 0 }; return }
+  if (l.live.op === "mtr" && l.live.seq && l.live.alight) {
+    const v = l.live, ib = v.seq.indexOf(v.stop), ia = v.seq.indexOf(v.alight);
+    try {
+      const d = await (await fetch("/api/transit?" + new URLSearchParams({ op: "mtr-eta", line: v.line, sta: v.stop, dir: "both" }))).json();
+      // 揀目的地喺落車站嗰邊嘅列車
+      const good = x => { const j = v.seq.indexOf(x.dest); return j < 0 ? false : ia > ib ? j > ib : j < ib };
+      const all = [...(d.UP || []), ...(d.DOWN || [])].filter(good).map(x => x.t).sort();
+      live = { etas: all, at: Date.now(), err: d.error || "" };
+    } catch (e) { live = { etas: [], at: Date.now(), err: "連唔到" } }
+    return;
+  }
   const v = l.live, q = new URLSearchParams(v.op === "mtr" ? { op: "mtr-eta", line: v.line, sta: v.stop, dir: v.dir } : { op: v.op + "-eta", route: v.route || "", stop: v.stop, dir: v.dir || "" });
   try { const r = await fetch("/api/transit?" + q); const d = await r.json(); live = { etas: d.etas || [], at: Date.now(), err: d.error || "" } }
   catch (e) { live = { etas: [], at: Date.now(), err: "連唔到" } }
@@ -594,7 +605,7 @@ $("legs").addEventListener("change", async e => {
     if (v._b !== "" && v._a !== "" && v._b != null && v._a != null && v._b !== v._a) {
       const ib = +v._b, ia = +v._a, b = v._st[ib], a = v._st[ia], n = Math.abs(ia - ib);
       l.m = Math.max(2, Math.round(n * (MTR_MIN[v.line] || 2.5)));
-      Object.assign(v, { op: "mtr", stop: b.id, stopName: b.name + "站", alight: a.id, alightName: a.name, dir: ia > ib ? "UP" : "DOWN", n, label: `${MTRL[v.line]} ${b.name} → ${a.name}` });
+      Object.assign(v, { op: "mtr", stop: b.id, stopName: b.name + "站", alight: a.id, alightName: a.name, dir: ia > ib ? "UP" : "DOWN", n, seq: v._st.map(x => x.id), label: `${MTRL[v.line]} ${b.name} → ${a.name}` });
       delete v._st; delete v._b; delete v._a; delete v._msg; loadEta();
     } else if (v._b !== "" && v._b === v._a) v._msg = "上落車站唔可以一樣";
   }
@@ -670,7 +681,7 @@ if (!code && fm.fileExists(f)) code = fm.readString(f);
 code = code.replace("__KEY__", KEY).replace("__BASE__", BASE);
 await (new Function("return (async () => {\\n" + code + "\\n})()"))();
 `;
-  $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="裝 widget"><div class="gh"><img src="${cat("cool")}" alt=""><div><b>裝 iPhone widget</b><small>選用 · 大約 2 分鐘 · 要用免費 app「Scriptable」</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb"><ol>
+  $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="裝 widget"><div class="gh"><img src="${cat("cool")}" alt=""><div><b>進階：裝 iPhone widget</b><small>選用 · 大約 2 分鐘 · 要用免費 app「Scriptable」</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb"><ol>
     <li>App Store 下載 <b>Scriptable</b><i class="zh">（免費，icon 係一個藍色 S）</i></li>
     <li>撳呢度 copy 你專屬嘅 widget code：<br><button type="button" class="pill" id="wCopy" style="background:var(--sky);margin-top:6px">📋 Copy widget code</button></li>
     <li>開 Scriptable → 右上 <b>＋</b> → 撳<b>上面黑色大空白位</b>（唔係底部搜尋格）→ 長按 <b>Paste</b><i class="zh">（貼上）</i>→ 頂部個名改做 <code>喵喵出行</code> → 撳 ▶️ 試行</li>

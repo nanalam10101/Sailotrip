@@ -106,6 +106,8 @@ const ops = {
   async "mtr-eta"({ line, sta, dir }) {
     const d = await j(`${MTR_ETA}?line=${line}&sta=${sta}`);
     const k = d.data && d.data[`${line}-${sta}`];
+    const both = d => ((k && k[d]) || []).map(x => ({ t: hkIso(x.time), dest: x.dest }));
+    if (dir === "both") return { UP: both("UP"), DOWN: both("DOWN") };
     const list = (k && k[dir]) || [];
     return { etas: list.map(x => hkIso(x.time)).sort(), dest: list[0] && list[0].dest };
   },
