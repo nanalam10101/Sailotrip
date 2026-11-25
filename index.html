@@ -183,7 +183,7 @@ nav svg{width:24px;height:24px}
       <h1>最後兩樣</h1>
       <label class="field">如果搭的士返工，大約幾錢？<input id="fTaxi" type="number" min="0" inputmode="numeric"></label>
       <h2>連接 iPhone 鬧鐘</h2>
-      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 2 步嘅「捷徑」幫手報返嚟，大約 2 分鐘。</p>
+      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 3 步嘅 Shortcut 幫手報返嚟，大約 2 分鐘。</p>
       <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">📖 睇教學（2 分鐘）</button>
       <div class="next"><button data-go="2" type="button">上一步</button><button class="pri" id="finish" type="button">完成，開始！</button></div>
     </div>
@@ -372,7 +372,7 @@ function renderHome() {
   } else $("liveCard").innerHTML = "";
   // alarm card
   const a = alarmState(p, now), sc = "clock-alarm://";
-  const rs = "shortcuts://run-shortcut?name=" + encodeURIComponent("貓貓報鬧鐘");
+  const rs = "shortcuts://run-shortcut?name=" + encodeURIComponent("MeowAlarm");
   const dayWord = dkey(p.day) === dkey(now) ? "今日" : (p.day - new Date(now).setHours(0, 0, 0, 0) <= 86400000 ? "聽日" : ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()]);
   if (out || now > p.wake) $("alarmCard").innerHTML = "";
   else if (a.st === "ok") $("alarmCard").innerHTML = `<div class="card ok"><img src="${cat("got")}" alt=""><div class="t"><strong>${dayWord} ${a.hit} 鬧鐘 ✓</strong><small>要 ${hm(p.wake)} 起身 · 自動偵測，同步 ${hm(a.at)}${a.stale ? "（舊咗）" : ""}</small></div></div>`;
@@ -552,11 +552,12 @@ $("finish").onclick = () => { S.setup = true; save(); show("home"); if (!S.alarm
 const CP = w => `<span class="cp"><code>${esc(MYURL())}</code><button type="button" data-copy="${w}">Copy</button></span>`;
 const MYURL = () => location.origin + "/api/alarm?k=" + S.key + "&a=";
 const GUIDE = [
-  ["who", "細佬幫你睇住鬧鐘", "整一個 2 步捷徑，大約 2 分鐘", () => `<ol><li>整一個捷徑「<b>貓貓報鬧鐘</b>」：讀你開咗邊啲鬧鐘，報返俾我</li><li>設一個自動化：每次閂「時鐘」App 就自動報</li></ol><div class="tip">💡 鬧鐘記得設「<b>重複</b>」（例如星期一至五）。朝早撳停之後佢會保持開住，唔使日日開返；單次鬧鐘響完會自動熄。</div>`],
-  ["wait", "① 搵鬧鐘", "開「捷徑」App → 右上角 ＋", () => `<ol><li>搜尋「<b>尋找鬧鐘</b>」，撳一下加入</li><li>撳「新增過濾條件」→ 揀「<b>已啟用</b>」→ 開關撥<b>開</b></li></ol>`],
-  ["got", "② 報俾細佬", "再加一個動作", () => `<ol><li>搜尋「<b>取得 URL 內容</b>」，撳一下加入</li><li>撳藍色「URL」，<b>貼上</b>你專屬嘅網址：${CP("url")}</li><li>游標放喺網址<b>最尾</b>，撳鍵盤上面嘅「<b>鬧鐘</b>」變數</li><li>撳返個「鬧鐘」變數 → 揀「<b>時間</b>」</li><li>頂部個名改做 <code>貓貓報鬧鐘</code> → 完成</li></ol><div class="tip">就咁兩個動作，唔使揀 POST / JSON。</div>`],
-  ["peek", "③ 自動報", "捷徑 App 底部「自動化」→ ＋", () => `<ol><li>揀「<b>App</b>」→ 揀「<b>時鐘</b>」→ 剔「<b>已關閉</b>」</li><li>揀「<b>立即執行</b>」→ 下一步 → 揀「貓貓報鬧鐘」</li></ol><div class="tip">之後你喺時鐘 App set 完鬧鐘、閂咗佢，我就自動知。</div>`],
-  ["yeah", "④ 試一次！", "", () => `<ol><li>開「時鐘」App，set 一個平日重複嘅起身鬧鐘</li><li>閂咗時鐘 App</li><li>返嚟呢度，見到綠色「鬧鐘 ✓」就成功 🎉</li></ol><div class="tip">⚠️ 鎖屏撳「略過下一次」嘅鬧鐘我分唔出，會當佢仲會響。</div>`],
+  ["who", "細佬幫你睇住鬧鐘", "整一個 3 步捷徑，大約 2 分鐘", () => `<ol><li>整一個捷徑「<b>MeowAlarm</b>」：讀你開咗邊啲鬧鐘，報返俾我</li><li>設一個 Automation：每次閂 Clock App 就自動報</li></ol><div class="tip">💡 鬧鐘記得設 <b>Repeat</b>（例如 Weekdays）。朝早撳 Stop 之後佢會保持開住，唔使日日開返；冇 Repeat 嘅鬧鐘響完會自動熄。</div>`],
+  ["wait", "① Find Alarms", "開 Shortcuts App → 右上角 ＋", () => `<ol><li>搜尋 <b>Find Alarms</b>，撳一下加入</li><li>撳 <b>Add Filter</b> → 揀 <b>Is Enabled</b>，確保係 <b>is</b> ＋ 開咗（綠色）</li></ol>`],
+  ["ok", "② URL Encode", "處理時間入面嘅空格", () => `<ol><li>搜尋 <b>URL Encode</b>，撳一下加入</li><li>撳藍色嘅 <b>Text</b> → 揀 <b>Alarms</b> 變數</li><li>再撳一下個 <b>Alarms</b> → 揀 <b>Time</b></li></ol>`],
+  ["got", "③ Get Contents of URL", "報俾細佬", () => `<ol><li>搜尋 <b>Get Contents of URL</b>，撳一下加入</li><li>撳藍色 <b>URL</b>，<b>Paste</b> 你專屬嘅網址：${CP("url")}</li><li>游標放喺網址<b>最尾</b>，喺鍵盤上面揀 <b>URL Encoded Text</b> 變數</li><li>頂部撳個名，改做 <code>MeowAlarm</code> → <b>Done</b></li></ol><div class="tip">Method 用預設 GET 就得，唔使改其他嘢。</div>`],
+  ["peek", "④ Automation", "Shortcuts 底部 Automation → ＋", () => `<ol><li>揀 <b>App</b> → Choose <b>Clock</b> → 剔 <b>Is Closed</b>（取消 Is Opened）</li><li>揀 <b>Run Immediately</b> → <b>Next</b> → 揀 <b>MeowAlarm</b></li></ol><div class="tip">之後喺 Clock App set 完鬧鐘、閂咗佢，我就自動知。</div>`],
+  ["yeah", "⑤ 試一次！", "", () => `<ol><li>開 Clock App，set 一個 Weekdays 重複嘅起身鬧鐘</li><li>閂咗 Clock App</li><li>返嚟呢度，見到綠色「鬧鐘 ✓」就成功 🎉</li></ol><div class="tip">⚠️ 鎖屏撳「Skip」嘅鬧鐘我分唔出，會當佢仲會響。</div>`],
 ];
 let gi = 0;
 function openGuide(i = 0) { gi = i; S.guideSeen = true; save(); drawGuide(); $("ov").classList.remove("hide") }
