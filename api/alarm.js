@@ -5,10 +5,20 @@
 // 搵 Blob token（容許 connect 時用咗自訂前綴，例如 SAILOTRIP_BLOB_READ_WRITE_TOKEN）
 const tokenName = () => Object.keys(process.env).find(k => k === "BLOB_READ_WRITE_TOKEN") || Object.keys(process.env).find(k => /BLOB.*READ_WRITE_TOKEN$/.test(k));
 const okKey = k => typeof k === "string" && /^[a-z0-9]{16,40}$/.test(k);
-const parseTimes = v => String(v || "")
-  .split(/[\s,，;]+/)
-  .map(s => { const m = s.match(/(\d{1,2})[:：.](\d{2})/); return m ? m[1].padStart(2, "0") + ":" + m[2] : null })
-  .filter(Boolean);
+// 接受各種格式：06:45、6:45 AM、上午6:45、下午7:00、2026年11月26日 上午6:45…
+function parseTimes(v) {
+  const out = new Set(), txt = String(v || "");
+  const re = /(上午|下午|中午|凌晨|早上|晚上|AM|PM|am|pm)?\s*(\d{1,2})[:：.](\d{2})(?![\d])\s*(AM|PM|am|pm|a\.m\.|p\.m\.)?/g;
+  let m;
+  while ((m = re.exec(txt))) {
+    let h = +m[2]; const mm = m[3], tag = (m[1] || m[4] || "").toLowerCase();
+    if (h > 23 || +mm > 59) continue;
+    if (/pm|p\.m\.|下午|晚上/.test(tag) && h < 12) h += 12;
+    if (/am|a\.m\.|上午|凌晨|早上/.test(tag) && h === 12) h = 0;
+    out.add(String(h).padStart(2, "0") + ":" + mm);
+  }
+  return [...out].sort();
+}
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -17,6 +27,13 @@ export default async function handler(req, res) {
     const { put, list } = await import("@vercel/blob");
     // 有舊式 READ_WRITE_TOKEN 就用；冇就交俾 @vercel/blob 自己用新式 store 設定認證
     const token = (tokenName() && process.env[tokenName()]) || undefined;
+    if (req.method === "GET" && req.query && req.query.a !== undefined) {
+      const k = req.query.k;
+      if (!okKey(k)) return res.status(200).json({ error: "bad key" });
+      const data = { alarms: parseTimes(req.query.a), at: Date.now() };
+      await put(`alarm/${k}.json`, JSON.stringify(data), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json", cacheControlMaxAge: 60, token });
+      return res.status(200).json({ ok: true, 細佬: "收到！", ...data });
+    }
     if (req.method === "POST") {
       let b = req.body;
       if (typeof b === "string") { try { b = JSON.parse(b) } catch (e) { b = Object.fromEntries(new URLSearchParams(b)) } }

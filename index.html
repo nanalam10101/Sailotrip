@@ -74,6 +74,10 @@ h2{font:900 22px/1.2 "Noto Sans TC",sans-serif;margin:22px 0 10px}
 .tl .st{font-size:13px;color:var(--dim);white-space:nowrap}
 .tl li.past{opacity:.45}.tl li.now .tm,.tl li.now .nm{color:var(--ginger)}
 /* setup */
+.intro{display:flex;gap:12px;align-items:center;background:var(--butter);border-radius:20px;padding:10px 14px;margin:4px 0 12px}
+.intro img{width:64px;flex:none}
+.intro p{margin:0;font-size:15px;line-height:1.45}
+.date{display:inline-block;background:var(--butter);border-radius:99px;padding:4px 14px;font-weight:700;font-size:14px;margin-top:10px}
 .steps{display:flex;gap:6px;margin:8px 0 14px}.steps i{flex:1;height:6px;border-radius:99px;background:var(--line)}.steps i.on{background:var(--ginger)}
 .field{display:grid;gap:4px;font-size:14px;color:var(--dim);font-weight:500}
 input,select{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;font-size:16px;width:100%;min-height:44px}
@@ -152,8 +156,8 @@ nav svg{width:24px;height:24px}
   <section id="vSetup" class="hide">
     <div class="steps" id="stepBar"><i></i><i></i><i></i></div>
     <div id="st1">
+      <div class="intro"><img src="/cats/ok.webp" alt=""><p><b>細佬：</b>「話我知你點返工，我幫你計幾點要出門。搭港鐵、巴士、小巴仲可以睇實時班次。」</p></div>
       <h1>你點返工？</h1>
-      <p class="muted">逐段加，細佬幫你計總共要幾耐。巴士 / 小巴 / 港鐵可以接實時到站。</p>
       <div class="row2">
         <label class="field">要幾點到<input id="fArrive" type="time"></label>
         <label class="field">等車 buffer（分鐘）<input id="fBuffer" type="number" min="0" inputmode="numeric"></label>
@@ -161,10 +165,11 @@ nav svg{width:24px;height:24px}
       <div class="field" style="margin-bottom:10px">返工日<div class="days" id="days"></div></div>
       <div id="legs"></div>
       <button class="add" id="addLeg" type="button">＋ 加一段</button>
-      <div class="total"><div><small>路程</small><br><b id="legTotal">0 分鐘</b></div><span class="pill" id="leaveHint" style="background:#fff"></span></div>
+      <div class="total"><div><small id="legSub">路程</small><br><b id="legTotal">0 分鐘</b></div><span class="pill" id="leaveHint" style="background:#fff"></span></div>
       <div class="next"><button class="pri" data-go="2" type="button">下一步</button></div>
     </div>
     <div id="st2" class="hide">
+      <div class="intro"><img src="/cats/wait.webp" alt=""><p><b>呀妹：</b>「出門前要做嘅事排好次序，我幫你逐樣倒數。」</p></div>
       <h1>出門前要做咩？</h1>
       <p class="muted">− / + 一撳 5 分鐘；撳名改名；× 刪除；▲▼ 排次序</p>
       <div class="pbar" id="pbar"></div>
@@ -174,13 +179,12 @@ nav svg{width:24px;height:24px}
       <div class="next"><button data-go="1" type="button">上一步</button><button class="pri" data-go="3" type="button">下一步</button></div>
     </div>
     <div id="st3" class="hide">
+      <div class="intro"><img src="/cats/got.webp" alt=""><p><b>細佬：</b>「最後連埋 iPhone 鬧鐘，我就知你 set 咗未。做一次就得。」</p></div>
       <h1>最後兩樣</h1>
       <label class="field">如果搭的士返工，大約幾錢？<input id="fTaxi" type="number" min="0" inputmode="numeric"></label>
       <h2>連接 iPhone 鬧鐘</h2>
-      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要用「捷徑」幫手報返嚟。跟教學做一次，大約 5 分鐘。</p>
-      <p style="margin:6px 0">你嘅 key：<code id="keyShow"></code></p>
-      <p style="margin:6px 0">網址：<code id="apiShow"></code></p>
-      <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">📖 睇教學（8 步）</button>
+      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 2 步嘅「捷徑」幫手報返嚟，大約 2 分鐘。</p>
+      <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">📖 睇教學（2 分鐘）</button>
       <div class="next"><button data-go="2" type="button">上一步</button><button class="pri" id="finish" type="button">完成，開始！</button></div>
     </div>
   </section>
@@ -190,6 +194,7 @@ nav svg{width:24px;height:24px}
     <div class="hero" id="hero">
       <img class="stk" id="stk" alt="">
       <div class="say" id="say"></div>
+      <div class="date" id="dateTag"></div>
       <div class="lab" id="lab"></div>
       <div class="cd" id="cd">--:--</div>
       <p class="sub" id="sub"></p>
@@ -366,18 +371,20 @@ function renderHome() {
       <small>${p.pick ? "趕 " + hm(p.pick) + " 嗰班就啱時間" : "按你設定時間計"}${live.at ? " · 更新 " + hm(new Date(live.at)) : ""}</small><div class="act">${hk}</div></div></div>`;
   } else $("liveCard").innerHTML = "";
   // alarm card
-  const a = alarmState(p, now), sc = "shortcuts://run-shortcut?name=" + encodeURIComponent("貓貓set鬧鐘") + "&input=text&text=" + hm(p.wake);
+  const a = alarmState(p, now), sc = "clock-alarm://";
   const rs = "shortcuts://run-shortcut?name=" + encodeURIComponent("貓貓報鬧鐘");
   const dayWord = dkey(p.day) === dkey(now) ? "今日" : (p.day - new Date(now).setHours(0, 0, 0, 0) <= 86400000 ? "聽日" : ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()]);
   if (out || now > p.wake) $("alarmCard").innerHTML = "";
   else if (a.st === "ok") $("alarmCard").innerHTML = `<div class="card ok"><img src="${cat("got")}" alt=""><div class="t"><strong>${dayWord} ${a.hit} 鬧鐘 ✓</strong><small>要 ${hm(p.wake)} 起身 · 自動偵測，同步 ${hm(a.at)}${a.stale ? "（舊咗）" : ""}</small></div></div>`;
-  else $("alarmCard").innerHTML = `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未連接鬧鐘捷徑" : dayWord + "要 " + hm(p.wake) + " 起身，未有鬧鐘"}</strong><small>${a.st === "none" ? "跟住教學做一次，之後自動偵測" : "呀妹：「你唔 set 我就唔瞓！」"}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>📖 教我 set</button>` : `<a href="${sc}">一鍵 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`;
+  else $("alarmCard").innerHTML = `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未連接鬧鐘捷徑" : dayWord + "要 " + hm(p.wake) + " 起身，未有鬧鐘"}</strong><small>${a.st === "none" ? "跟住教學做一次，之後自動偵測" : "呀妹：「你唔 set 我就唔瞓！」"}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>📖 教我 set</button>` : `<a href="${sc}">開時鐘 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`;
   // buttons
   $("bOut").classList.toggle("done", !!out); $("bOutT").textContent = out ? "已出門 ✓" : "出咗門";
   $("bTaxiT").textContent = lg && lg.taxi ? "已記的士" : "搭咗的士";
   $("adjM").textContent = "今日早 5 分" + (S.adj[p.key] ? `（${S.adj[p.key] > 0 ? "+" : ""}${S.adj[p.key]}）` : "");
   // timeline
   $("tlTitle").textContent = dayWord + "時間線";
+  const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  $("dateTag").textContent = `${dayWord} · ${pad(p.day.getDate())} ${MON[p.day.getMonth()]} ${p.day.getFullYear()}（星期${"日一二三四五六"[p.day.getDay()]}）`;
   const rows = p.pts.map(x => ({ t: x.s, n: x.n, past: now >= x.e, now: x === cur })).concat([{ t: p.leave, n: "出門🚪", past: now >= p.leave, now: false }, { t: p.arriveEst, n: "到達", past: now >= p.arriveEst }]);
   $("tl").innerHTML = rows.map(r => `<li class="${r.past ? "past" : ""} ${r.now ? "now" : ""}"><div class="tm">${hm(r.t)}</div><div class="nm">${esc(r.n)}</div><div class="st">${r.past ? "✓" : r.now ? "而家" : ""}</div></li>`).join("");
 }
@@ -433,7 +440,7 @@ function renderSetup() {
   ["st1", "st2", "st3"].forEach((id, i) => $(id).classList.toggle("hide", i + 1 !== step));
   [...$("stepBar").children].forEach((x, i) => x.classList.toggle("on", i < step));
   if (step === 1) renderLegs(); if (step === 2) renderMs();
-  if (step === 3) { $("fTaxi").value = S.taxi; $("keyShow").textContent = S.key; $("apiShow").textContent = location.origin + "/api/alarm" }
+  if (step === 3) { $("fTaxi").value = S.taxi }
 }
 function renderDays() { $("days").innerHTML = [1, 2, 3, 4, 5, 6, 0].map(d => `<button type="button" data-d="${d}" class="${S.days.includes(d) ? "on" : ""}">${DAYN[d]}</button>`).join("") }
 function renderLegs() {
@@ -443,20 +450,27 @@ function renderLegs() {
     <div class="types">${Object.keys(TYPES).map(t => `<button type="button" data-a="type" data-t="${t}" class="${t === l.t ? "on" : ""}" aria-label="${TYPES[t][0]}">${ICON[t]}</button>`).join("")}</div>
     ${["bus", "gmb", "mtr"].includes(l.t) ? liveBox(l, i) : ""}</div>`).join("");
   const tot = legSum() + (+S.buffer || 0);
-  $("legTotal").textContent = legSum() + " 分鐘"; $("leaveHint").textContent = `${S.arrive} 到 → ${hm(new Date(atTime(new Date(), S.arrive) - tot * MIN))} 出門`;
+  $("legTotal").textContent = tot + " 分鐘"; $("legSub").textContent = `車程 ${legSum()} 分 ＋ 等車 ${+S.buffer || 0} 分（已包 buffer）`; $("leaveHint").textContent = `${S.arrive} 到 → ${hm(new Date(atTime(new Date(), S.arrive) - tot * MIN))} 出門`;
 }
 function liveBox(l, i) {
   const v = l.live || {};
-  if (v.stop) return `<div class="livebox"><span class="ok">✓ 實時：${esc(v.label)} · ${esc(v.stopName)}</span><button type="button" class="pill" data-a="relive">改站</button></div>`;
+  if (v.stop && l.t === "mtr" && !v.alight) return `<div class="livebox"><span class="muted">${esc(v.stopName)} 上車，未揀落車站，估唔到車程</span><button type="button" class="pill" data-a="relive">揀上落車站</button></div>`;
+  if (v.stop) return `<div class="livebox"><span class="ok">✓ 實時：${esc(v.label)}${l.t === "mtr" ? "" : " · " + esc(v.stopName)}</span>${v.n ? `<span class="muted">${v.n} 個站，估計約 ${l.m} 分鐘（可以再用 −/+ 調）</span>` : ""}<button type="button" class="pill" data-a="relive">改站</button></div>`;
   let h = `<div class="livebox">`;
   if (l.t === "bus") h += `<div class="row2" style="margin:0"><select data-f="op"><option value="kmb" ${v.op !== "ctb" ? "selected" : ""}>九巴 / 龍運</option><option value="ctb" ${v.op === "ctb" ? "selected" : ""}>城巴</option></select><input data-f="route" placeholder="路線，例如 286C" value="${esc(v.route || "")}" autocapitalize="characters"></div>`;
   if (l.t === "gmb") h += `<div class="row2" style="margin:0"><select data-f="region"><option value="NT" ${v.region === "NT" || !v.region ? "selected" : ""}>新界</option><option value="KLN" ${v.region === "KLN" ? "selected" : ""}>九龍</option><option value="HKI" ${v.region === "HKI" ? "selected" : ""}>港島</option></select><input data-f="route" placeholder="小巴線，例如 807K" value="${esc(v.route || "")}" autocapitalize="characters"></div>`;
-  if (l.t === "mtr") h += `<select data-f="line"><option value="">揀綫</option>${Object.keys(MTRL).map(k => `<option value="${k}" ${v.line === k ? "selected" : ""}>${MTRL[k]}</option>`).join("")}</select>`;
+  if (l.t === "mtr") {
+    h += `<select data-f="line"><option value="">揀綫</option>${Object.keys(MTRL).map(k => `<option value="${k}" ${v.line === k ? "selected" : ""}>${MTRL[k]}</option>`).join("")}</select>`;
+    if (v._st) { const opt = sel => v._st.map((s, j) => `<option value="${j}" ${String(sel) === String(j) ? "selected" : ""}>${esc(s.name)}</option>`).join("");
+      h += `<div class="row2" style="margin:0"><select data-f="mb"><option value="">上車站</option>${opt(v._b)}</select><select data-f="ma"><option value="">落車站</option>${opt(v._a)}</select></div>` }
+  }
   if (l.t !== "mtr") h += `<button type="button" class="pill" data-a="find" style="justify-self:start">搵站</button>`;
   if (v._dirs) h += `<select data-f="dir">${v._dirs.map((d, j) => `<option value="${j}" ${v._d == j ? "selected" : ""}>${esc(d.label)}</option>`).join("")}</select><select data-f="stop"><option value="">揀上車站</option>${(v._dirs[v._d || 0].stops || []).map((s, j) => `<option value="${j}">${esc(s.name)}</option>`).join("")}</select>`;
   if (v._msg) h += `<span class="muted">${esc(v._msg)}</span>`;
   return h + `<span class="muted">唔設定都得，就用固定分鐘數</span></div>`;
 }
+// 每個站平均車程（分鐘，粗略估算）
+const MTR_MIN = { EAL: 3.3, TML: 2.5, KTL: 2, TWL: 2.1, ISL: 1.9, TKL: 2.6, TCL: 4.5, SIL: 2.6, AEL: 8, DRL: 4 };
 const MTRL = { EAL: "東鐵綫", TML: "屯馬綫", KTL: "觀塘綫", TWL: "荃灣綫", ISL: "港島綫", TKL: "將軍澳綫", TCL: "東涌綫", SIL: "南港島綫", AEL: "機場快綫", DRL: "迪士尼綫" };
 let mtrData = null;
 async function mtrStations(line) {
@@ -468,7 +482,7 @@ $("legs").addEventListener("click", async e => {
   if (a === "m-") l.m = Math.max(0, l.m - 5); if (a === "m+") l.m += 5;
   if (a === "del") S.legs.splice(i, 1);
   if (a === "type") { l.t = b.dataset.t; if (l.n === TYPES[l.t][0] || !l.n || Object.values(TYPES).some(x => x[0] === l.n)) l.n = TYPES[l.t][0]; delete l.live }
-  if (a === "relive") l.live = { op: l.t === "bus" ? (l.live.op || "kmb") : l.t };
+  if (a === "relive") { const line = l.live && l.live.line; l.live = { op: l.t === "bus" ? (l.live.op || "kmb") : l.t }; if (l.t === "mtr" && line) { l.live.line = line; try { l.live._st = (await mtrStations(line)).map(s => ({ id: s.code, name: s.name })); l.live._b = l.live._a = "" } catch (err) {} } }
   if (a === "find") {
     l.live = l.live || { op: l.t === "bus" ? "kmb" : "gmb" }; const v = l.live, box = b.closest(".leg");
     for (const f of ["route", "op", "region"]) { const el = box.querySelector(`[data-f=${f}]`); if (el) v[f] = el.value.trim() }
@@ -495,8 +509,17 @@ $("legs").addEventListener("change", async e => {
     delete v._dirs; delete v._msg; loadEta();
   }
   if (f === "line") {
-    v.op = "mtr"; v.line = e.target.value; v._msg = "搵緊…"; renderLegs();
-    try { const st = await mtrStations(v.line); v._dirs = st.length ? [{ dir: "UP", label: "往" + st[st.length - 1].name, stops: st.map(s => ({ id: s.code, name: s.name })) }, { dir: "DOWN", label: "往" + st[0].name, stops: st.map(s => ({ id: s.code, name: s.name })) }] : null; v._d = 0; v._msg = v._dirs ? "" : "暫時攞唔到站名" } catch (err) { v._msg = "連唔到港鐵數據" }
+    v.op = "mtr"; v.line = e.target.value; v._b = v._a = ""; v._msg = "搵緊…"; renderLegs();
+    try { const st = await mtrStations(v.line); v._st = st.length ? st.map(s => ({ id: s.code, name: s.name })) : null; v._msg = v._st ? "" : "暫時攞唔到站名" } catch (err) { v._msg = "連唔到港鐵數據" }
+  }
+  if (f === "mb" || f === "ma") {
+    v[f === "mb" ? "_b" : "_a"] = e.target.value;
+    if (v._b !== "" && v._a !== "" && v._b != null && v._a != null && v._b !== v._a) {
+      const ib = +v._b, ia = +v._a, b = v._st[ib], a = v._st[ia], n = Math.abs(ia - ib);
+      l.m = Math.max(2, Math.round(n * (MTR_MIN[v.line] || 2.5)));
+      Object.assign(v, { op: "mtr", stop: b.id, stopName: b.name + "站", alight: a.id, alightName: a.name, dir: ia > ib ? "UP" : "DOWN", n, label: `${MTRL[v.line]} ${b.name} → ${a.name}` });
+      delete v._st; delete v._b; delete v._a; delete v._msg; loadEta();
+    } else if (v._b !== "" && v._b === v._a) v._msg = "上落車站唔可以一樣";
   }
   save(); renderLegs();
 });
@@ -526,16 +549,14 @@ document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { step = +
 $("finish").onclick = () => { S.setup = true; save(); show("home"); if (!S.alarm && !S.guideSeen) openGuide(0); else popup("got", "設定好！", "細佬同呀妹會幫你睇住時間 🐾") };
 
 // ---------- 捷徑教學 ----------
-const CP = w => `<span class="cp"><code>${w === "key" ? esc(S.key) : esc(location.origin + "/api/alarm")}</code><button type="button" data-copy="${w}">Copy</button></span>`;
+const CP = w => `<span class="cp"><code>${esc(MYURL())}</code><button type="button" data-copy="${w}">Copy</button></span>`;
+const MYURL = () => location.origin + "/api/alarm?k=" + S.key + "&a=";
 const GUIDE = [
-  ["who", "細佬幫你睇住鬧鐘", "做 2 個捷徑 + 2 個自動化，大約 5 分鐘", () => `<ol><li><b>捷徑 A「貓貓報鬧鐘」</b>：讀你開咗邊啲鬧鐘，報返俾 app</li><li><b>自動化</b>：每次閂「時鐘」App 同每晚 22:00 自動報</li><li><b>捷徑 B「貓貓set鬧鐘」</b>：app 入面一鍵 set 鬧鐘</li></ol><div class="tip">💡 鬧鐘記得設「重複」（例如星期一至五），朝早撳停之後佢會保持開住，唔使日日開返。單次鬧鐘響完會自動熄。</div>`],
-  ["wait", "捷徑 A ①：搵鬧鐘", "開「捷徑」App", () => `<ol><li>撳底部「捷徑」→ 右上角 <b>＋</b></li><li>搜尋「<b>尋找鬧鐘</b>」（Find Alarms）加入</li><li>撳「新增過濾條件」→ 揀「<b>已啟用</b>」「是」，開關撥<b>開</b></li></ol>`],
-  ["ok", "捷徑 A ②：變做時間", "", () => `<ol><li>搜尋「<b>重複每一項</b>」加入（輸入會自動係「鬧鐘」）</li><li>喺重複<b>入面</b>加「<b>格式化日期</b>」</li><li>撳「日期」→ 揀「重複項目」→ 再揀「<b>時間</b>」</li><li>日期格式揀「<b>自訂</b>」，填 <code>HH:mm</code></li></ol>`],
-  ["hold", "捷徑 A ③：合埋一行", "", () => `<ol><li>喺「結束重複」<b>下面</b>加「<b>合併文字</b>」</li><li>文字揀「<b>重複結果</b>」</li><li>分隔符揀「自訂」，填一個英文逗號 <code>,</code></li></ol>`],
-  ["got", "捷徑 A ④：送俾細佬", "最後一步，要 copy 兩樣嘢", () => `<ol><li>加「<b>取得 URL 內容</b>」，URL 貼呢個：${CP("url")}</li><li>撳箭咀展開：方法揀 <b>POST</b>，要求內文揀 <b>JSON</b></li><li>加欄位「文字」：鍵 <code>k</code>，值貼你嘅 key：${CP("key")}</li><li>再加「文字」：鍵 <code>alarms</code>，值揀「<b>合併的文字</b>」</li><li>撳頂部個名，改做 <code>貓貓報鬧鐘</code></li></ol>`],
-  ["peek", "自動化：唔使自己撳", "撳底部「自動化」→ ＋", () => `<ol><li>揀「<b>App</b>」→ 揀「<b>時鐘</b>」→ 剔「<b>已關閉</b>」</li><li>揀「<b>立即執行</b>」→ 下一步 → 揀「貓貓報鬧鐘」</li><li>再 <b>＋</b> 一個：「<b>特定時間</b>」22:00、每日、立即執行 → 都係揀「貓貓報鬧鐘」</li></ol><div class="tip">咁你每次喺時鐘 App 改完鬧鐘、閂咗佢，app 就會自動知。</div>`],
-  ["cool", "捷徑 B：一鍵 set", "返去「捷徑」→ ＋", () => `<ol><li>加「<b>製作鬧鐘</b>」，撳時間 → 揀「<b>捷徑輸入</b>」</li><li>撳頂部 ⓘ →「接收」只剔「<b>文字</b>」</li><li>下面加「<b>執行捷徑</b>」→ 揀「貓貓報鬧鐘」</li><li>名改做 <code>貓貓set鬧鐘</code></li></ol><div class="tip">名一定要一模一樣，app 嘅「一鍵 set」先搵到佢。</div>`],
-  ["yeah", "試一次！", "", () => `<ol><li>開「時鐘」App，set 一個平日重複嘅起身鬧鐘</li><li>閂咗時鐘 App（自動化會跑）</li><li>返嚟呢度，見到綠色「鬧鐘 ✓」就成功 🎉</li></ol><div class="tip">⚠️ 鎖屏撳「略過下一次」嘅鬧鐘，捷徑分唔出，app 會當佢仲會響。</div>`],
+  ["who", "細佬幫你睇住鬧鐘", "整一個 2 步捷徑，大約 2 分鐘", () => `<ol><li>整一個捷徑「<b>貓貓報鬧鐘</b>」：讀你開咗邊啲鬧鐘，報返俾我</li><li>設一個自動化：每次閂「時鐘」App 就自動報</li></ol><div class="tip">💡 鬧鐘記得設「<b>重複</b>」（例如星期一至五）。朝早撳停之後佢會保持開住，唔使日日開返；單次鬧鐘響完會自動熄。</div>`],
+  ["wait", "① 搵鬧鐘", "開「捷徑」App → 右上角 ＋", () => `<ol><li>搜尋「<b>尋找鬧鐘</b>」，撳一下加入</li><li>撳「新增過濾條件」→ 揀「<b>已啟用</b>」→ 開關撥<b>開</b></li></ol>`],
+  ["got", "② 報俾細佬", "再加一個動作", () => `<ol><li>搜尋「<b>取得 URL 內容</b>」，撳一下加入</li><li>撳藍色「URL」，<b>貼上</b>你專屬嘅網址：${CP("url")}</li><li>游標放喺網址<b>最尾</b>，撳鍵盤上面嘅「<b>鬧鐘</b>」變數</li><li>撳返個「鬧鐘」變數 → 揀「<b>時間</b>」</li><li>頂部個名改做 <code>貓貓報鬧鐘</code> → 完成</li></ol><div class="tip">就咁兩個動作，唔使揀 POST / JSON。</div>`],
+  ["peek", "③ 自動報", "捷徑 App 底部「自動化」→ ＋", () => `<ol><li>揀「<b>App</b>」→ 揀「<b>時鐘</b>」→ 剔「<b>已關閉</b>」</li><li>揀「<b>立即執行</b>」→ 下一步 → 揀「貓貓報鬧鐘」</li></ol><div class="tip">之後你喺時鐘 App set 完鬧鐘、閂咗佢，我就自動知。</div>`],
+  ["yeah", "④ 試一次！", "", () => `<ol><li>開「時鐘」App，set 一個平日重複嘅起身鬧鐘</li><li>閂咗時鐘 App</li><li>返嚟呢度，見到綠色「鬧鐘 ✓」就成功 🎉</li></ol><div class="tip">⚠️ 鎖屏撳「略過下一次」嘅鬧鐘我分唔出，會當佢仲會響。</div>`],
 ];
 let gi = 0;
 function openGuide(i = 0) { gi = i; S.guideSeen = true; save(); drawGuide(); $("ov").classList.remove("hide") }
@@ -545,7 +566,7 @@ function drawGuide() {
 }
 $("ov").addEventListener("click", async e => {
   const g = e.target.closest("[data-g]"), c = e.target.closest("[data-copy]");
-  if (c) { try { await navigator.clipboard.writeText(c.dataset.copy === "key" ? S.key : location.origin + "/api/alarm"); c.textContent = "Copied ✓" } catch (err) { c.textContent = "長按上面複製" } return }
+  if (c) { try { await navigator.clipboard.writeText(MYURL()); c.textContent = "Copied ✓" } catch (err) { c.textContent = "長按上面複製" } return }
   if (!g) { if (e.target === $("ov") && $("ov").querySelector(".guide")) $("ov").classList.add("hide"); return }
   if (g.dataset.g === "x") { $("ov").classList.add("hide"); syncAlarm().then(() => view === "home" && renderHome()); return }
   gi = Math.max(0, Math.min(GUIDE.length - 1, gi + (g.dataset.g === "next" ? 1 : -1))); drawGuide();
