@@ -1,7 +1,6 @@
 // iPhone 捷徑 → 呢度：記低你開咗邊啲鬧鐘
 // POST /api/alarm  body: {"k":"<你嘅 key>","alarms":"06:45,07:00"}
 // GET  /api/alarm?k=<key>
-import { put, list } from "@vercel/blob";
 
 const okKey = k => typeof k === "string" && /^[a-z0-9]{16,40}$/.test(k);
 const parseTimes = v => String(v || "")
@@ -11,7 +10,9 @@ const parseTimes = v => String(v || "")
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
+  if (req.query && req.query.ping) return res.status(200).json({ ok: true, hasToken: !!process.env.BLOB_READ_WRITE_TOKEN, node: process.version });
   try {
+    const { put, list } = await import("@vercel/blob");
     if (req.method === "POST") {
       let b = req.body;
       if (typeof b === "string") { try { b = JSON.parse(b) } catch (e) { b = Object.fromEntries(new URLSearchParams(b)) } }
