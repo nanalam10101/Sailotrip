@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       if (!okKey(k)) return res.status(200).json({ error: "bad key" });
       const data = { alarms: parseTimes(req.query.a), at: Date.now() };
       await save(k, data);
-      return res.status(200).json({ ok: true, 細佬: "收到！", ...data });
+      return res.status(200).json({ ok: true, 細佬: data.alarms.length ? "收到！" : "收到，但搵唔到時間", ...data, 收到原文: String(req.query.a).slice(0, 300) });
     }
     if (req.method === "POST") {
       let b = req.body;
