@@ -650,7 +650,7 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-a2hs]")) openA2HS();
   if (e.target.closest("[data-widget]")) openWidget();
   if (e.target.id === "wCopy") {
-    if (!widgetCode) { e.target.textContent = "準備緊…再撳一次"; return }
+    if (!widgetCode) return;
     navigator.clipboard.writeText(widgetCode).then(() => { e.target.textContent = "Copied ✓ 去 Scriptable 貼上" }).catch(() => { e.target.textContent = "Copy 唔到，再試一次" });
   }
   if (e.target.id === "a2hsX") { S.a2hsHide = true; save(); renderHome() }
@@ -658,14 +658,22 @@ document.addEventListener("click", e => {
 let widgetCode = "";
 function openWidget() {
   widgetCode = "";
-  fetch("/widget.js", { cache: "no-store" }).then(r => r.text()).then(t => { widgetCode = t.replace("__KEY__", S.key).replace("__BASE__", location.origin) }).catch(() => {});
+  widgetCode = `// 喵喵出行 iPhone Widget（自動更新版，唔使改）
+const KEY = "${S.key}", BASE = "${location.origin}";
+const fm = FileManager.local(), f = fm.joinPath(fm.documentsDirectory(), "meow-widget-cache.js");
+let code = "";
+try { const r = new Request(BASE + "/widget.js?t=" + Date.now()); r.timeoutInterval = 10; code = await r.loadString(); if (code.includes("Scriptable")) fm.writeString(f, code); else code = "" } catch (e) {}
+if (!code && fm.fileExists(f)) code = fm.readString(f);
+code = code.replace("__KEY__", KEY).replace("__BASE__", BASE);
+await (new Function("return (async () => {\\n" + code + "\\n})()"))();
+`;
   $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="裝 widget"><div class="gh"><img src="${cat("cool")}" alt=""><div><b>裝 iPhone widget</b><small>選用 · 大約 2 分鐘 · 要用免費 app「Scriptable」</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb"><ol>
     <li>App Store 下載 <b>Scriptable</b><i class="zh">（免費，icon 係一個藍色 S）</i></li>
     <li>撳呢度 copy 你專屬嘅 widget code：<br><button type="button" class="pill" id="wCopy" style="background:var(--sky);margin-top:6px">📋 Copy widget code</button></li>
-    <li>開 Scriptable → 右上 <b>＋</b> → 撳空白位 → <b>Paste</b><i class="zh">（貼上）</i>→ 頂部個名改做 <code>喵喵出行</code> → <b>Done</b></li>
-    <li>返主畫面，長按空白位 → 左上 <b>Edit</b> → <b>Add Widget</b><i class="zh">（加入小工具）</i>→ 搵 <b>Scriptable</b> → 揀<b>中型</b>（Medium）→ <b>Add Widget</b></li>
+    <li>開 Scriptable → 右上 <b>＋</b> → 撳<b>上面黑色大空白位</b>（唔係底部搜尋格）→ 長按 <b>Paste</b><i class="zh">（貼上）</i>→ 頂部個名改做 <code>喵喵出行</code> → 撳 ▶️ 試行</li>
+    <li>返主畫面，長按空白位 → 左上 <b>Edit</b> → <b>Add Widget</b><i class="zh">（加入小工具）</i>→ 搵 <b>Scriptable</b> → 揀<b>中型</b>或者<b>大型</b> → <b>Add Widget</b></li>
     <li>撳一下個新 widget → <b>Script</b> 揀 <b>喵喵出行</b> → 撳外面完成</li>
-  </ol><div class="tip">Widget 每 5 分鐘左右更新一次，倒數秒數會自己跳。撳 widget 會開返喵喵出行。<br>⚠️ code 入面有你嘅私人 key，唔好 send 俾人；朋友要自己喺佢部機 copy。</div></div><div class="gf"><span class="muted" style="flex:1;margin:0">撳外面都可以閂</span><button class="pri" type="button" data-g="x">好</button></div></div>`;
+  </ol><div class="tip">✓ 自動更新版：之後細佬有新功能，widget 會自己更新，唔使再貼。<br>建議用<b>大型</b>（Large）widget，可以見晒之後每個 milestone。<br>Widget 每 5 分鐘左右更新一次，倒數秒數會自己跳。撳 widget 會開返喵喵出行。<br>⚠️ code 入面有你嘅私人 key，唔好 send 俾人；朋友要自己喺佢部機 copy。</div></div><div class="gf"><span class="muted" style="flex:1;margin:0">撳外面都可以閂</span><button class="pri" type="button" data-g="x">好</button></div></div>`;
   $("ov").classList.remove("hide");
 }
 function openA2HS() {

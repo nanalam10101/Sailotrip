@@ -33,8 +33,26 @@ function plan(S, now, etas) {
   const msSum = S.ms.reduce((a, m) => a + (+m.m || 0), 0);
   const pts = []; let t = +leave - msSum * MIN;
   for (const m of S.ms) { pts.push({ n: m.n, s: new Date(t), e: new Date(t + m.m * MIN) }); t += m.m * MIN }
-  return { day, key, leave, pick, pts, wake: pts.length ? pts[0].s : leave, isToday: key === dkey(now) };
+  const arriveEst = pick ? new Date(+pick + S.legs.slice(li).reduce((a, l) => a + l.m, 0) * MIN) : new Date(+leave + total * MIN);
+  return { day, key, leave, pick, pts, arriveEst, wake: pts.length ? pts[0].s : leave, isToday: key === dkey(now) };
 }
+const MSCOL = ["#f5c49c", "#ffe98a", "#ffd6e0", "#e6dcff", "#bff0d9", "#d8ebff"];
+// 彩色時間線：milestone + 出門→到，直線標示而家
+function drawBar(p, now, W) {
+  const H = 34, R = 9, ctx = new DrawContext(); ctx.size = new Size(W, H); ctx.opaque = false; ctx.respectScreenScale = true;
+  const t0 = +p.wake, t1 = +p.arriveEst, span = Math.max(1, t1 - t0);
+  const segs = p.pts.map((x, i) => ({ a: +x.s, b: +x.e, c: MSCOL[i % MSCOL.length] })).concat([{ a: +p.leave, b: t1, c: "#d8ebff" }]);
+  const bg = new Path(); bg.addRoundedRect(new Rect(0, 8, W, 18), R, R); ctx.addPath(bg); ctx.setFillColor(new Color("#f1e3d6")); ctx.fillPath();
+  for (const sg of segs) {
+    const x = (sg.a - t0) / span * W, w = Math.max(2, (sg.b - sg.a) / span * W - 2);
+    const r = new Path(); r.addRoundedRect(new Rect(x, 8, w, 18), 6, 6); ctx.addPath(r);
+    ctx.setFillColor(new Color(sg.c, now >= sg.b ? 0.35 : 1)); ctx.fillPath();
+  }
+  const nx = Math.min(W - 2, Math.max(2, (now - t0) / span * W));
+  if (now >= t0 && now <= t1) { ctx.setFillColor(new Color("#e5486b")); ctx.fillRect(new Rect(nx - 1.5, 2, 3, 30)); ctx.fillEllipse(new Rect(nx - 5, 0, 10, 10)) }
+  return ctx.getImage();
+}
+const clean = n => String(n).trim();
 function poseFor(n) { if (/貓|餵/.test(n)) return "hungry"; if (/妝/.test(n)) return "cool"; if (/衫/.test(n)) return "ok"; if (/洗|沖涼/.test(n)) return "comfy"; if (/床|起身/.test(n)) return "tired"; return "wait" }
 
 async function build() {
@@ -56,14 +74,25 @@ async function build() {
 
   const fam = config.widgetFamily || "medium";
   const row = w.addStack(); row.centerAlignContent();
-  const i = await img(pose); if (i) { const im = row.addImage(i); im.imageSize = fam === "small" ? new Size(52, 52) : new Size(84, 84); row.addSpacer(10) }
+  const i = await img(pose); if (i) { const im = row.addImage(i); im.imageSize = fam === "small" ? new Size(46, 46) : new Size(fam === "large" ? 96 : 60, fam === "large" ? 96 : 60); row.addSpacer(10) }
   const col = row.addStack(); col.layoutVertically();
   const day = col.addText((p.isToday ? "今日" : "聽日") + " · " + ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()]); day.font = Font.mediumSystemFont(11); day.textColor = C.dim;
   const l1 = col.addText(lab); l1.font = Font.boldSystemFont(13); l1.textColor = late ? C.berry : C.dim; l1.lineLimit = 1;
-  if (target) { const dt = col.addDate(target); dt.applyTimerStyle(); dt.font = Font.heavyRoundedSystemFont(fam === "small" ? 24 : 32); dt.textColor = C.ink; dt.minimumScaleFactor = 0.5 }
+  if (target) { const dt = col.addDate(target); dt.applyTimerStyle(); dt.font = Font.heavyRoundedSystemFont(fam === "small" ? 22 : 28); dt.textColor = C.ink; dt.minimumScaleFactor = 0.5 }
   else { const t2 = col.addText(late ? "應該 " + hm(p.leave) + " 出門" : "🐾"); t2.font = Font.heavyRoundedSystemFont(22); t2.textColor = late ? C.berry : C.ink }
   if (fam !== "small") {
     w.addSpacer(6);
+    const bar = w.addImage(drawBar(p, now, fam === "large" ? 320 : 300)); bar.imageSize = new Size(fam === "large" ? 320 : 300, 34); bar.centerAlignImage();
+    const ends = w.addStack(); const e1 = ends.addText(hm(p.wake) + " 起身"); ends.addSpacer(); const e2 = ends.addText(hm(p.leave) + " 出門"); ends.addSpacer(); const e3 = ends.addText(hm(p.arriveEst) + " 到");
+    for (const e of [e1, e2, e3]) { e.font = Font.mediumSystemFont(10); e.textColor = C.dim }
+    w.addSpacer(4);
+    const up = p.pts.filter(x => x.s > now).map(x => ({ t: x.s, n: clean(x.n) })).concat(now < p.leave ? [{ t: p.leave, n: "出門🚪" }] : []);
+    const nUp = fam === "large" ? 6 : 3;
+    if (up.length) {
+      if (fam === "large") { for (const u of up.slice(0, nUp)) { const r2 = w.addStack(); const a1 = r2.addText(hm(u.t)); a1.font = Font.heavyRoundedSystemFont(14); a1.textColor = C.ink; r2.addSpacer(8); const a2 = r2.addText(u.n); a2.font = Font.mediumSystemFont(14); a2.textColor = C.ink } }
+      else { const t3 = w.addText("之後：" + up.slice(0, nUp).map(u => hm(u.t) + " " + u.n).join(" → ")); t3.font = Font.mediumSystemFont(11); t3.textColor = C.ink; t3.lineLimit = 1; t3.minimumScaleFactor = 0.7 }
+      w.addSpacer(4);
+    }
     const info = w.addStack(); info.spacing = 8;
     const a = info.addText(hm(p.leave) + " 出門" + (p.pick ? " · 趕 " + hm(p.pick) : "")); a.font = Font.boldSystemFont(12); a.textColor = C.ginger;
     const ok = alarm && alarm.alarms && alarm.alarms.some(t => { const [h, m] = t.split(":").map(Number), w2 = p.wake.getHours() * 60 + p.wake.getMinutes(), d = w2 - (h * 60 + m); return d >= 0 && d <= 120 });
