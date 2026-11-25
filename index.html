@@ -40,7 +40,11 @@ h2{font:900 22px/1.2 "Noto Sans TC",sans-serif;margin:22px 0 10px}
 .cd{font:900 clamp(60px,19vw,88px)/1 "Noto Sans TC",sans-serif;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:4px 0}
 .late .cd{color:var(--berry)}
 .sub{margin:0}.sub b{color:var(--ginger);white-space:nowrap}.late .sub b{color:var(--berry)}
-.adj{display:flex;justify-content:center;gap:8px;margin-top:10px}
+.adj{display:flex;gap:8px;flex-wrap:wrap}
+.log{background:#fff;border:1.5px solid var(--line);border-radius:24px;padding:16px;margin-top:20px}
+.log .btns{margin-top:10px}
+.adjrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.adjrow small{display:block;color:var(--dim);font-size:13px}
 .adj button{background:var(--card);border-radius:99px;padding:8px 14px;font-weight:700;font-size:14px;min-height:40px}
 .track{position:relative;margin:44px 2px 4px}
 .rail{height:16px;border-radius:99px;display:flex;overflow:hidden;gap:2px;background:#fff}
@@ -198,17 +202,22 @@ nav svg{width:24px;height:24px}
       <div class="lab" id="lab"></div>
       <div class="cd" id="cd">--:--</div>
       <p class="sub" id="sub"></p>
-      <div class="adj"><button id="adjM" type="button">今日早 5 分</button><button id="adjP" type="button">今日遲 5 分</button></div>
     </div>
     <div class="track" id="track"></div>
     <div class="ends" id="trackEnds"></div>
     <div id="liveCard"></div>
     <div id="alarmCard"></div>
-    <div class="btns">
+    <section class="log">
+      <h2 style="margin-top:0">📝 今日記錄</h2>
+      <p class="muted" id="logHint">出門嗰下撳一撳，細佬幫你計準時同慳咗幾多。</p>
+      <div class="btns">
       <button class="go" id="bOut" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h9v4M14 16v5M12 12h9m-3-3 3 3-3 3"/></svg><span id="bOutT">出咗門</span></button>
       <button id="bTaxi" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-5l-2-5H7l-2 5zM9 7V5h6v2M5 12h14"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg><span id="bTaxiT">搭咗的士</span></button>
       <button id="bUndo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9h11a5 5 0 0 1 0 10H8M4 9l4-4M4 9l4 4"/></svg>重設今日</button>
-    </div>
+      </div>
+      <div class="adjrow"><div><b>臨時改出門時間</b><small>例如要早啲到。只改呢一日，唔影響設定</small></div><div class="adj"><button id="adjM" type="button">早 5 分出門</button><button id="adjP" type="button">遲 5 分出門</button></div></div>
+      <p class="muted" id="adjNow"></p>
+    </section>
     <h2 id="tlTitle">今日時間線</h2>
     <ol class="tl" id="tl"></ol>
   </section>
@@ -381,12 +390,14 @@ function renderHome() {
   const rs = "shortcuts://run-shortcut?name=" + encodeURIComponent("MeowAlarm");
   const dayWord = dkey(p.day) === dkey(now) ? "今日" : (p.day - new Date(now).setHours(0, 0, 0, 0) <= 86400000 ? "聽日" : ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()]);
   if (out || now > p.wake) setHTML("alarmCard", "");
-  else if (a.st === "ok") setHTML("alarmCard", `<div class="card ok"><img src="${cat("got")}" alt=""><div class="t"><strong>${dayWord} ${a.hit} 鬧鐘 ✓</strong><small>要 ${hm(p.wake)} 起身 · 自動偵測，同步 ${hm(a.at)}${a.stale ? "（舊咗）" : ""}</small></div></div>`);
-  else setHTML("alarmCard", `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未連接鬧鐘捷徑" : dayWord + "要 " + hm(p.wake) + " 起身，未有鬧鐘"}</strong><small>${a.st === "none" ? "跟住教學做一次，之後自動偵測" : "呀妹：「你唔 set 我就唔瞓！」"}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>📖 教我 set</button>` : `<a href="${sc}">開時鐘 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`);
+  else if (a.st === "ok") setHTML("alarmCard", `<div class="card ok"><img src="${cat("got")}" alt=""><div class="t"><strong>✓ 你已經 set 咗鬧鐘</strong><small>細佬喺你 iPhone 搵到 <b>${a.hit}</b> 嘅鬧鐘，趕得切${dayWord} ${hm(p.wake)} 起身。最後檢查：${hm(a.at)}${a.stale ? "（好耐冇更新，開一開 Clock App）" : ""}</small></div></div>`);
+  else setHTML("alarmCard", `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未知你 set 咗鬧鐘未" : "⚠️ 未 set 鬧鐘"}</strong><small>${a.st === "none" ? "做一次進階設定，細佬就會自動幫你 check" : `${dayWord}要 ${hm(p.wake)} 起身，但搵唔到 ${hm(p.wake)} 或之前嘅鬧鐘。呀妹：「你唔 set 我就唔瞓！」`}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>📖 教我 set</button>` : `<a href="${sc}">開時鐘 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`);
   // buttons
   $("bOut").classList.toggle("done", !!out); $("bOutT").textContent = out ? "已出門 ✓" : "出咗門";
   $("bTaxiT").textContent = lg && lg.taxi ? "已記的士" : "搭咗的士";
-  $("adjM").textContent = "今日早 5 分" + (S.adj[p.key] ? `（${S.adj[p.key] > 0 ? "+" : ""}${S.adj[p.key]}）` : "");
+  const ad = S.adj[p.key] || 0;
+  $("adjNow").textContent = ad ? `已調整：${dayWord}${ad < 0 ? "早" : "遲"} ${Math.abs(ad)} 分鐘出門（${hm(p.leave)}）。撳「重設今日」可以還原。` : "";
+  $("logHint").textContent = out ? (lg.on ? `${hm(new Date(lg.at))} 出咗門，準時 ✓` : `${hm(new Date(lg.at))} 出咗門`) + (lg.taxi ? "，搭咗的士" : "") : "出門嗰下撳「出咗門」，細佬幫你計準時同慳咗幾多。";
   // timeline
   $("tlTitle").textContent = dayWord + "時間線";
   const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
