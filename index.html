@@ -46,6 +46,8 @@ h2{font:900 22px/1.2 "Noto Sans TC",sans-serif;margin:22px 0 10px}
 .tipbar{display:flex;align-items:center;gap:6px;background:var(--sky);border-radius:14px;padding:4px 6px 4px 12px;margin-top:12px}
 .tiplink{flex:1;text-align:left;font-size:14px;font-weight:700;color:var(--ink);padding:8px 0}
 #a2hsX{width:36px;height:36px;border-radius:50%;color:var(--dim)}
+.tpls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tpls button{background:var(--card);border-radius:14px;padding:10px 8px;font-weight:700;font-size:15px;min-height:46px;color:var(--ink)}
 .chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
 .chips button{background:var(--card);border-radius:16px;padding:12px 8px;font-weight:700;font-size:15px;min-height:52px;border:2px solid transparent}
 .chips button.on{border-color:var(--ginger);background:#fff3e8}
@@ -174,9 +176,12 @@ nav svg{width:24px;height:24px}
       <h1>你點返工？</h1>
       <div class="row2">
         <label class="field">要幾點到<input id="fArrive" type="time"></label>
-        <label class="field">等車 buffer（分鐘）<input id="fBuffer" type="number" min="0" inputmode="numeric"></label>
+        <label class="field">預多幾分鐘（等車／塞車）<input id="fBuffer" type="number" min="0" inputmode="numeric"></label>
       </div>
       <div class="field" style="margin-bottom:10px">返工日<div class="days" id="days"></div></div>
+      <div class="field" style="margin-bottom:8px">快速範本<div class="tpls" id="tpls">
+        <button type="button" data-tpl="mtr">🚇 港鐵為主</button><button type="button" data-tpl="bus">🚌 巴士為主</button><button type="button" data-tpl="gmb">🚐 小巴為主</button><button type="button" data-tpl="mix">🔀 港鐵＋小巴</button>
+      </div><span class="muted" style="font-size:13px">揀一個再慢慢改，或者直接喺下面自己砌</span></div>
       <div id="legs"></div>
       <button class="add" id="addLeg" type="button">＋ 加一段</button>
       <div class="total"><div><small id="legSub">路程</small><br><b id="legTotal">0 分鐘</b></div><span class="pill" id="leaveHint" style="background:#fff"></span></div>
@@ -206,10 +211,11 @@ nav svg{width:24px;height:24px}
       <h2>連接 iPhone 鬧鐘 <span class="pill" style="background:var(--lilac);font-size:12px;padding:3px 10px">進階 · 選用</span></h2>
       <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 Shortcut 幫手報返嚟。呢個係進階設定，唔做都用得 app。細佬只收鬧鐘時間同隨機 key，冇個人資料。</p>
       <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">⚙️ 進階：自動偵測鬧鐘（選用）</button>
-      <div class="imp" style="margin-top:12px"><b>你嘅鬧鐘 key</b>：<code id="keyNow"></code>
+      <details class="imp" style="margin-top:12px"><summary>🔧 疑難排解：鬧鐘一直偵測唔到？</summary>
+        <p class="muted" style="margin:6px 0">每部機有一條「key」，捷徑要報去同一條 key 先收到。你嘅 key：<code id="keyNow"></code></p>
         <p class="muted" style="margin:6px 0">如果你之前喺另一個地方（例如 Safari）已經整好捷徑，可以喺度貼返嗰條 key，咁捷徑唔使改。</p>
         <div style="display:flex;gap:6px"><input id="keyIn" placeholder="貼上舊 key" autocapitalize="off" autocomplete="off"><button class="pill" type="button" id="keyUse" style="background:var(--ginger);color:#fff;min-height:44px">改用</button></div>
-        <span class="muted" id="keyMsg"></span></div>
+        <span class="muted" id="keyMsg"></span></details>
       <div class="next"><button data-go="2" type="button">上一步</button><button class="pri" id="finish" type="button">完成，開始！</button></div>
     </div>
   </section>
@@ -235,11 +241,11 @@ nav svg{width:24px;height:24px}
       <div class="btns">
       <button class="go" id="bOut" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h9v4M14 16v5M12 12h9m-3-3 3 3-3 3"/></svg><span id="bOutT">出咗門</span></button>
       <button id="bTaxi" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-5l-2-5H7l-2 5zM9 7V5h6v2M5 12h14"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg><span id="bTaxiT">搭咗的士</span></button>
-      <button id="bUndo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9h11a5 5 0 0 1 0 10H8M4 9l4-4M4 9l4 4"/></svg>重設今日</button>
+      <button id="bUndo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9h11a5 5 0 0 1 0 10H8M4 9l4-4M4 9l4 4"/></svg>還原今日</button>
       </div>
       <div id="retro" class="hide"></div>
       <div class="adjrow"><div><b id="adjTitle">臨時改出門時間</b><small>例如要早啲到。只改呢一日；改咗之後，準時會以新時間計，唔算遲到</small></div><div class="adj"><button id="adjM" type="button">早 5 分出門</button><button id="adjP" type="button">遲 5 分出門</button></div></div>
-      <p class="muted" id="adjNowWrap"><span id="adjNow"></span> <button type="button" class="pill hide" id="adjReset" style="background:var(--blush)">還原</button></p>
+      <p class="muted" id="adjNowWrap"><span id="adjNow"></span> </p>
     </section>
     <h2 id="tlTitle">今日時間線</h2>
     <ol class="tl" id="tl"></ol>
@@ -428,7 +434,7 @@ function renderHome() {
   const dayWord = dkey(p.day) === dkey(now) ? "今日" : (p.day - new Date(now).setHours(0, 0, 0, 0) <= 86400000 ? "聽日" : ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()]);
   if (out || now > p.wake) setHTML("alarmCard", "");
   else if (a.st === "ok") setHTML("alarmCard", `<div class="card ok"><img src="${cat("got")}" alt=""><div class="t"><strong>✓ 你已經 set 咗鬧鐘</strong><small>細佬喺你 iPhone 搵到 <b>${a.hit}</b> 嘅鬧鐘，趕得切${dayWord} ${hm(p.wake)} 起身。最後檢查：${hm(a.at)}${a.stale ? "（好耐冇更新，開一開 Clock App）" : ""}</small></div></div>`);
-  else setHTML("alarmCard", `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未知你 set 咗鬧鐘未" : "⚠️ 未 set 鬧鐘"}</strong><small>${a.st === "none" ? "未收到任何鬧鐘。整好捷徑後離開一次 Clock App；如果已經整咗，去設定第 3 步 check 吓 key 係咪一樣" : `${dayWord}要 ${hm(p.wake)} 起身，但搵唔到 ${hm(p.wake)} 或之前嘅鬧鐘。呀妹：「你唔 set 我就唔瞓！」`}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>⚙️ 進階：教我連接（選用）</button>` : `<a href="${sc}">開時鐘 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`);
+  else setHTML("alarmCard", `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未知你 set 咗鬧鐘未" : "⚠️ 未 set 鬧鐘"}</strong><small>${a.st === "none" ? "未收到任何鬧鐘。整好捷徑後離開一次 Clock App；如果已經整咗，去設定第 3 步「疑難排解」睇吓" : `${dayWord}要 ${hm(p.wake)} 起身，但搵唔到 ${hm(p.wake)} 或之前嘅鬧鐘。呀妹：「你唔 set 我就唔瞓！」`}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>⚙️ 進階：教我連接（選用）</button>` : `<a href="${sc}">開時鐘 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`);
   // 未加到主畫面就提一次
   const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
   setHTML("a2hsCard", !standalone && !S.a2hsHide ? `<div class="tipbar"><button type="button" data-a2hs class="tiplink">📲 可以加到主畫面，好似 app 咁用 ›</button><button type="button" id="a2hsX" aria-label="唔使">✕</button></div>` : "");
@@ -436,8 +442,8 @@ function renderHome() {
   $("bOut").classList.toggle("done", !!out); $("bOutT").textContent = out ? "已出門 ✓" : "出咗門";
   $("bTaxiT").textContent = lg && lg.taxi ? "已記的士" : "搭咗的士";
   const ad = S.adj[p.key] || 0; $("adjTitle").textContent = `臨時改${dayWord}出門時間`;
-  $("adjNow").textContent = ad ? `* 已調整：${dayWord}${ad < 0 ? "早" : "遲"} ${Math.abs(ad)} 分鐘出門（${hm(p.leave)} 出門，約 ${hm(p.arriveEst)} 到）。` : "";
-  $("adjReset").classList.toggle("hide", !ad);
+  $("adjNow").textContent = ad ? `* 已調整：${dayWord}${ad < 0 ? "早" : "遲"} ${Math.abs(ad)} 分鐘出門（${hm(p.leave)} 出門，約 ${hm(p.arriveEst)} 到）。撳上面「還原今日」可以取消。` : "";
+
   // 今日補記：今日係返工日，而且已過咗今日出門時間 30 分鐘
   const t0d = new Date(now); t0d.setHours(0, 0, 0, 0);
   const tKey = dkey(t0d), tWork = S.days.includes(t0d.getDay());
@@ -505,8 +511,8 @@ $("retro").addEventListener("click", e => {
   if (r === "taxi") popup("sad", "記低咗搭的士", `今日用咗大約 $${S.taxi}，細佬話聽日一齊準時！`);
   if (r === "off") popup("comfy", "今日唔使返工", "好好休息～唔會計入記錄");
 });
-$("bUndo").onclick = () => { const p = plan(new Date()); delete S.log[p.key]; delete S.adj[p.key]; save(); renderHome() };
-$("adjReset").onclick = () => { const p = plan(new Date()); delete S.adj[p.key]; save(); renderHome() };
+$("bUndo").onclick = () => { const p = plan(new Date()); const had = S.log[p.key] || S.adj[p.key]; delete S.log[p.key]; delete S.adj[p.key]; save(); renderHome(); popup("ok", had ? "還原咗" : "冇嘢要還原", had ? "出門記錄同臨時改時間都清咗。" : "今日未有記錄或者臨時改時間。") };
+
 $("adjM").onclick = () => { const p = plan(new Date()); S.adj[p.key] = (S.adj[p.key] || 0) - 5; save(); renderHome() };
 $("adjP").onclick = () => { const p = plan(new Date()); S.adj[p.key] = (S.adj[p.key] || 0) + 5; save(); renderHome() };
 
@@ -538,7 +544,7 @@ function renderLegs() {
     <div class="types">${Object.keys(TYPES).map(t => `<button type="button" data-a="type" data-t="${t}" class="${t === l.t ? "on" : ""}" aria-label="${TYPES[t][0]}">${ICON[t]}</button>`).join("")}</div>
     ${["bus", "gmb", "mtr"].includes(l.t) ? liveBox(l, i) : ""}</div>`).join("");
   const tot = legSum() + (+S.buffer || 0);
-  $("legTotal").textContent = tot + " 分鐘"; $("legSub").textContent = `車程 ${legSum()} 分 ＋ 等車 ${+S.buffer || 0} 分（已包 buffer）`; $("leaveHint").textContent = `${S.arrive} 到 → ${hm(new Date(atTime(new Date(), S.arrive) - tot * MIN))} 出門`;
+  $("legTotal").textContent = tot + " 分鐘"; $("legSub").textContent = `車程 ${legSum()} 分 ＋ 預多 ${+S.buffer || 0} 分（等車／塞車）`; $("leaveHint").textContent = `${S.arrive} 到 → ${hm(new Date(atTime(new Date(), S.arrive) - tot * MIN))} 出門`;
 }
 function liveBox(l, i) {
   const v = l.live || {};
@@ -611,6 +617,13 @@ $("legs").addEventListener("change", async e => {
   }
   save(); renderLegs();
 });
+const TPL = {
+  mtr: [{ t: "walk", n: "行去港鐵站", m: 8 }, { t: "mtr", n: "港鐵", m: 20 }, { t: "walk", n: "行返公司", m: 5 }],
+  bus: [{ t: "walk", n: "行去巴士站", m: 5 }, { t: "bus", n: "巴士", m: 30 }, { t: "walk", n: "行返公司", m: 5 }],
+  gmb: [{ t: "walk", n: "行去小巴站", m: 5 }, { t: "gmb", n: "小巴", m: 20 }, { t: "walk", n: "行返公司", m: 5 }],
+  mix: [{ t: "walk", n: "行去港鐵站", m: 8 }, { t: "mtr", n: "港鐵", m: 15 }, { t: "gmb", n: "小巴", m: 15 }],
+};
+$("tpls").addEventListener("click", e => { const b = e.target.closest("[data-tpl]"); if (!b) return; S.legs = JSON.parse(JSON.stringify(TPL[b.dataset.tpl])); save(); renderLegs() });
 $("addLeg").onclick = () => { S.legs.push({ t: "walk", n: "行路", m: 5 }); save(); renderLegs() };
 $("days").addEventListener("click", e => { const d = e.target.dataset.d; if (d == null) return; const n = +d; S.days = S.days.includes(n) ? S.days.filter(x => x !== n) : S.days.concat(n); save(); renderDays() });
 $("fArrive").onchange = e => { S.arrive = e.target.value || "09:00"; save(); renderLegs() };
@@ -638,9 +651,11 @@ $("finish").onclick = () => { S.setup = true; save(); show("home"); popup("got",
 
 // ---------- 捷徑教學 ----------
 const CP = w => `<span class="cp"><code>${esc(MYURL())}</code><button type="button" data-copy="${w}">Copy</button></span>`;
+// 填入 iCloud 捷徑連結之後，教學會變成一鍵安裝
+const SHORTCUT_URL = "";
 const MYURL = () => location.origin + "/api/alarm?k=" + S.key + "&a=";
 const GUIDE = [
-  ["who", "進階設定：自動偵測鬧鐘", "選用 · 大約 2 分鐘 · 按鈕名英文（中文）對照", () => `<p style="margin:0 0 8px"><b>呢個設定做咩？</b>做咗之後，細佬會自動知你聽日 set 咗鬧鐘未，鬧鐘遲過起身時間或者未 set 都會提你。<b>唔做都用得 app</b>，只係冇鬧鐘檢查。</p><ol><li>整一個捷徑「<b>MeowAlarm</b>」：讀你開咗邊啲鬧鐘，報返俾我</li><li>開一個 Automation：每次閂 Clock App 就自動跑佢</li></ol><div class="tip" style="background:var(--sky)">🔒 細佬只會收到你嘅<b>鬧鐘時間</b>同一個隨機 key，冇你個名、電話或者其他資料。</div><div class="tip">💡 鬧鐘記得設 <b>Repeat</b><i class="zh">（重複）</i>（例如 Weekdays）。朝早撳 Stop 之後佢會保持開住，唔使日日開返；冇 Repeat 嘅鬧鐘響完會自動熄。</div>`],
+  ["who", "進階設定：自動偵測鬧鐘", "選用 · 大約 2 分鐘 · 按鈕名英文（中文）對照", () => `${SHORTCUT_URL ? `<div class="tip" style="background:var(--butter)"><b>⚡ 快速安裝（建議）</b><ol style="margin:6px 0 0"><li><button type="button" class="pill" data-copy="key" style="background:#fff">① Copy 你嘅 key</button></li><li><a class="pill" href="${SHORTCUT_URL}" style="background:#fff;text-decoration:none;color:inherit">② 一鍵安裝捷徑 ↗</a> → <b>Add Shortcut</b> → 問你 key 嗰陣貼上</li><li>跟住做第 ③ 步（Automation），其他步驟可以跳過</li></ol></div>` : ""}<p style="margin:0 0 8px"><b>呢個設定做咩？</b>做咗之後，細佬會自動知你聽日 set 咗鬧鐘未，鬧鐘遲過起身時間或者未 set 都會提你。<b>唔做都用得 app</b>，只係冇鬧鐘檢查。</p><ol><li>整一個捷徑「<b>MeowAlarm</b>」：讀你開咗邊啲鬧鐘，報返俾我</li><li>開一個 Automation：每次閂 Clock App 就自動跑佢</li></ol><div class="tip" style="background:var(--sky)">🔒 細佬只會收到你嘅<b>鬧鐘時間</b>同一個隨機 key，冇你個名、電話或者其他資料。</div><div class="tip">💡 鬧鐘記得設 <b>Repeat</b><i class="zh">（重複）</i>（例如 Weekdays）。朝早撳 Stop 之後佢會保持開住，唔使日日開返；冇 Repeat 嘅鬧鐘響完會自動熄。</div>`],
   ["wait", "① Find Alarms", "開 Shortcuts App → 右上角 ＋", () => `<ol><li>搜尋 <b>Find Alarms</b><i class="zh">（尋找鬧鐘）</i>，撳一下加入</li><li>撳 <b>Add Filter</b><i class="zh">（加入過濾條件）</i>，再撳藍色嘅 <b>Label</b> → 改揀 <b>Is Enabled</b><i class="zh">（已啟用）</i></li><li><b>Sort by</b> 揀 <b>Time</b> 或者 <b>Hours</b><i class="zh">（時間／小時）</i>，<b>Order</b> 揀 <b>Earliest First</b> 或者 <b>Smallest First</b><i class="zh">（最早／最細排先）</i></li></ol><div class="tip">⚠️ 一定要見到「Is Enabled」，唔係「Label is Enabled」。<br>排咗最早嘅鬧鐘先，細佬淨係睇第一個就知你最早幾點起身。</div>`],
   ["got", "② Get Contents of URL", "報俾細佬", () => `<ol><li>搜尋 <b>Get Contents of URL</b><i class="zh">（取得URL內容）</i>，撳一下加入</li><li>撳藍色 <b>URL</b>，<b>Paste</b><i class="zh">（貼上）</i>你專屬嘅網址：${CP("url")}</li><li>游標放喺網址<b>最尾</b>（<code>&a=</code> 後面），喺鍵盤上面揀 <b>Alarms</b><i class="zh">（鬧鐘）</i>→ 再撳一下揀 <b>Time</b><i class="zh">（時間）</i></li><li>頂部撳個名，改做 <code>MeowAlarm</code> → <b>Done</b></li></ol><div class="tip">撳 ▶️ 試行：見到「細佬：收到！」同你最早嘅鬧鐘時間就啱。<br>如果話 invalid URL：中間加 <b>URL Encode</b><i class="zh">（URL 編碼）</i>，網址最尾改用 URL Encoded Text。</div>`],
   ["peek", "③ 開 Automation（離開 Clock 就自動報）", "Shortcuts 主頁 → 右上角 ＋ 開一個新捷徑", () => `<ol><li>撳頂部 <b>Add Trigger</b><i class="zh">（加入觸發條件）</i>（或「When」）→ 揀 <b>App</b></li><li>App 揀 <b>Clock</b><i class="zh">（時鐘）</i></li><li>撳藍色 <b>Opened</b><i class="zh">（已開啟）</i> → 改做 <b>Closed</b><i class="zh">（已關閉）</i></li><li><b>Automation</b><i class="zh">（自動化）</i> 開關撥<b>開</b>（綠色），<b>Notify</b><i class="zh">（通知）</i> 熄住</li><li>下面撳 <b>＋</b> 加 action：搜尋 <b>Run Shortcut</b><i class="zh">（執行捷徑）</i> → 揀 <b>MeowAlarm</b></li><li>撳左上 ‹ 儲存</li></ol><div class="tip">舊版 iOS：去 Shortcuts 底部 <b>Automation</b><i class="zh">（自動化）</i> 分頁 → ＋ → <b>App</b> → <b>Clock</b><i class="zh">（時鐘）</i> → 剔 <b>Is Closed</b><i class="zh">（已關閉）</i> → <b>Run Immediately</b><i class="zh">（立即執行）</i> → 揀 MeowAlarm。</div>`],
@@ -654,7 +669,7 @@ function drawGuide() {
 }
 $("ov").addEventListener("click", async e => {
   const g = e.target.closest("[data-g]"), c = e.target.closest("[data-copy]");
-  if (c) { try { await navigator.clipboard.writeText(MYURL()); c.textContent = "Copied ✓" } catch (err) { c.textContent = "長按上面複製" } return }
+  if (c) { try { await navigator.clipboard.writeText(c.dataset.copy === "key" ? S.key : MYURL()); c.textContent = "Copied ✓" } catch (err) { c.textContent = "長按上面複製" } return }
   if (!g) { if (e.target === $("ov")) $("ov").classList.add("hide"); return }
   if (g.dataset.g === "x") { $("ov").classList.add("hide"); syncAlarm().then(() => view === "home" && renderHome()); return }
   gi = Math.max(0, Math.min(GUIDE.length - 1, gi + (g.dataset.g === "next" ? 1 : -1))); drawGuide();
@@ -726,7 +741,8 @@ function show(v) {
 $("nav").addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (b) show(b.dataset.v) });
 // 主畫面 app／新機：網址帶 ?k= 就由雲端攞返設定
 const qk = new URLSearchParams(location.search).get("k");
-const keyURL = () => { try { history.replaceState(null, "", "/?k=" + S.key); const m = document.querySelector('link[rel="manifest"]'); if (m) m.href = "/api/manifest?k=" + S.key } catch (e) {} };
+const isApp = () => navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+const keyURL = () => { try { history.replaceState(null, "", isApp() ? "/" : "/?k=" + S.key); const m = document.querySelector('link[rel="manifest"]'); if (m) m.href = "/api/manifest?k=" + S.key } catch (e) {} };
 async function restore(k) {
   try { const r = await fetch("/api/state?k=" + k, { cache: "no-store" }); const d = await r.json();
     if (d && d.s && d.s.movedTo && d.s.movedTo !== k) return restore(d.s.movedTo);
