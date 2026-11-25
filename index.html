@@ -183,8 +183,8 @@ nav svg{width:24px;height:24px}
       <h1>最後兩樣</h1>
       <label class="field">如果搭的士返工，大約幾錢？<input id="fTaxi" type="number" min="0" inputmode="numeric"></label>
       <h2>連接 iPhone 鬧鐘</h2>
-      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 3 步嘅 Shortcut 幫手報返嚟，大約 2 分鐘。</p>
-      <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">📖 睇教學（2 分鐘）</button>
+      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 Shortcut 幫手報返嚟。呢個係進階設定，唔做都用得 app。</p>
+      <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">⚙️ 進階：自動偵測鬧鐘（選用）</button>
       <div class="next"><button data-go="2" type="button">上一步</button><button class="pri" id="finish" type="button">完成，開始！</button></div>
     </div>
   </section>
@@ -238,6 +238,11 @@ const pad = n => String(n).padStart(2, "0");
 const hm = d => pad(d.getHours()) + ":" + pad(d.getMinutes());
 const dkey = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
 const cat = n => "/cats/" + n + ".webp";
+const _last = {};
+const setHTML = (id, h) => { if (_last[id] !== h) { _last[id] = h; $(id).innerHTML = h } };
+const emo = n => (String(n).match(/\p{Extended_Pictographic}/u) || [""])[0];
+const plain = n => String(n).replace(/[\p{Extended_Pictographic}\u200d\ufe0f]/gu, "").trim();
+const shortLab = (n, wide) => wide ? esc(n) : esc(emo(n) || plain(n).slice(0, 1));
 
 // ---------- icons ----------
 const P = 'fill="none" stroke="#3a2a20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
@@ -353,30 +358,31 @@ function renderHome() {
   $("say").textContent = SAY[pose][0] + "：「" + SAY[pose][1] + "」";
   $("lab").textContent = lab;
   $("cd").textContent = late ? "+" + fmt(now - p.leave) : fmt(target - now);
-  $("sub").innerHTML = sub;
+  setHTML("sub", sub);
   // track
   const t0 = +p.wake, t1 = +p.arriveEst, span = Math.max(1, t1 - t0);
   const segs = p.pts.map(x => ({ w: (x.e - x.s) / span * 100, c: x.c, n: x.n, past: now >= x.e })).concat([{ w: (t1 - p.leave) / span * 100, c: "var(--sky)", n: "出門→到", past: now >= t1 }]);
   const pos = Math.min(100, Math.max(0, (now - t0) / span * 100));
-  $("track").innerHTML = `<img class="walker" src="${cat(out ? "go" : "ok")}" style="left:${pos}%" alt=""><div class="rail">${segs.map(s => `<i class="${s.past ? "past" : ""}" style="width:${s.w}%;background:${s.c}"></i>`).join("")}</div><div class="marks">${segs.map(s => `<div style="width:${s.w}%">${esc(s.n.replace(/\p{Extended_Pictographic}/gu, ""))}</div>`).join("")}</div>`;
-  $("trackEnds").innerHTML = `<span><b>${hm(p.wake)}</b> 起身</span><span><b>${hm(p.leave)}</b> 出門</span><span><b>${hm(p.arriveEst)}</b> 到</span>`;
+  setHTML("track", `<img class="walker" id="walker" src="${cat(out ? "go" : "ok")}" alt=""><div class="rail">${segs.map(s => `<i class="${s.past ? "past" : ""}" style="width:${s.w}%;background:${s.c}"></i>`).join("")}</div><div class="marks">${segs.map(s => `<div style="width:${s.w}%">${shortLab(s.n, s.w >= 14)}</div>`).join("")}</div>`);
+  $("walker").style.left = pos + "%";
+  setHTML("trackEnds", `<span><b>${hm(p.wake)}</b> 起身</span><span><b>${hm(p.leave)}</b> 出門</span><span><b>${hm(p.arriveEst)}</b> 到</span>`);
   // live card
   const ll = S.legs.find(x => x.live && x.live.stop);
   if (ll) {
     const v = ll.live, mins = live.etas.map(e => Math.round((new Date(e) - now) / MIN)).filter(m => m >= -1).slice(0, 4);
     const pk = p.pick ? Math.round((p.pick - now) / MIN) : null;
     const hk = v.op === "mtr" ? "" : `<a href="https://hkbus.app/zh/route/${encodeURIComponent((v.route || "").toLowerCase())}" target="_blank" rel="noopener">喺 hkbus.app 開 ↗</a>`;
-    $("liveCard").innerHTML = `<div class="card live"><div class="ic" style="background:#fff">${ICON[ll.t] || ICON.bus}</div><div class="t"><strong>${esc(v.label || ll.n)} · 實時</strong><small>${esc(v.stopName || "")}</small>
+    setHTML("liveCard", `<div class="card live"><div class="ic" style="background:#fff">${ICON[ll.t] || ICON.bus}</div><div class="t"><strong>${esc(v.label || ll.n)} · 實時</strong><small>${esc(v.stopName || "")}</small>
       <div class="etas">${mins.length ? mins.map(m => `<span class="${m === pk ? "pick" : ""}">${m <= 0 ? "即將" : m + " 分"}</span>`).join("") : `<span>${live.err ? "暫時攞唔到" : "冇班次資料"}</span>`}</div>
-      <small>${p.pick ? "趕 " + hm(p.pick) + " 嗰班就啱時間" : "按你設定時間計"}${live.at ? " · 更新 " + hm(new Date(live.at)) : ""}</small><div class="act">${hk}</div></div></div>`;
-  } else $("liveCard").innerHTML = "";
+      <small>${p.pick ? "趕 " + hm(p.pick) + " 嗰班就啱時間" : "按你設定時間計"}${live.at ? " · 更新 " + hm(new Date(live.at)) : ""}</small><div class="act">${hk}</div></div></div>`);
+  } else setHTML("liveCard", "");
   // alarm card
   const a = alarmState(p, now), sc = "clock-alarm://";
   const rs = "shortcuts://run-shortcut?name=" + encodeURIComponent("MeowAlarm");
   const dayWord = dkey(p.day) === dkey(now) ? "今日" : (p.day - new Date(now).setHours(0, 0, 0, 0) <= 86400000 ? "聽日" : ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()]);
-  if (out || now > p.wake) $("alarmCard").innerHTML = "";
-  else if (a.st === "ok") $("alarmCard").innerHTML = `<div class="card ok"><img src="${cat("got")}" alt=""><div class="t"><strong>${dayWord} ${a.hit} 鬧鐘 ✓</strong><small>要 ${hm(p.wake)} 起身 · 自動偵測，同步 ${hm(a.at)}${a.stale ? "（舊咗）" : ""}</small></div></div>`;
-  else $("alarmCard").innerHTML = `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未連接鬧鐘捷徑" : dayWord + "要 " + hm(p.wake) + " 起身，未有鬧鐘"}</strong><small>${a.st === "none" ? "跟住教學做一次，之後自動偵測" : "呀妹：「你唔 set 我就唔瞓！」"}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>📖 教我 set</button>` : `<a href="${sc}">開時鐘 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`;
+  if (out || now > p.wake) setHTML("alarmCard", "");
+  else if (a.st === "ok") setHTML("alarmCard", `<div class="card ok"><img src="${cat("got")}" alt=""><div class="t"><strong>${dayWord} ${a.hit} 鬧鐘 ✓</strong><small>要 ${hm(p.wake)} 起身 · 自動偵測，同步 ${hm(a.at)}${a.stale ? "（舊咗）" : ""}</small></div></div>`);
+  else setHTML("alarmCard", `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未連接鬧鐘捷徑" : dayWord + "要 " + hm(p.wake) + " 起身，未有鬧鐘"}</strong><small>${a.st === "none" ? "跟住教學做一次，之後自動偵測" : "呀妹：「你唔 set 我就唔瞓！」"}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>📖 教我 set</button>` : `<a href="${sc}">開時鐘 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`);
   // buttons
   $("bOut").classList.toggle("done", !!out); $("bOutT").textContent = out ? "已出門 ✓" : "出咗門";
   $("bTaxiT").textContent = lg && lg.taxi ? "已記的士" : "搭咗的士";
@@ -386,7 +392,7 @@ function renderHome() {
   const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   $("dateTag").textContent = `${dayWord} · ${pad(p.day.getDate())} ${MON[p.day.getMonth()]} ${p.day.getFullYear()}（星期${"日一二三四五六"[p.day.getDay()]}）`;
   const rows = p.pts.map(x => ({ t: x.s, n: x.n, past: now >= x.e, now: x === cur })).concat([{ t: p.leave, n: "出門🚪", past: now >= p.leave, now: false }, { t: p.arriveEst, n: "到達", past: now >= p.arriveEst }]);
-  $("tl").innerHTML = rows.map(r => `<li class="${r.past ? "past" : ""} ${r.now ? "now" : ""}"><div class="tm">${hm(r.t)}</div><div class="nm">${esc(r.n)}</div><div class="st">${r.past ? "✓" : r.now ? "而家" : ""}</div></li>`).join("");
+  setHTML("tl", rows.map(r => `<li class="${r.past ? "past" : ""} ${r.now ? "now" : ""}"><div class="tm">${hm(r.t)}</div><div class="nm">${esc(r.n)}</div><div class="st">${r.past ? "✓" : r.now ? "而家" : ""}</div></li>`).join(""));
 }
 
 // ---------- popups ----------
@@ -481,7 +487,7 @@ $("legs").addEventListener("click", async e => {
   const b = e.target.closest("[data-a]"); if (!b) return; const i = +b.closest(".leg").dataset.i, l = S.legs[i], a = b.dataset.a;
   if (a === "m-") l.m = Math.max(0, l.m - 5); if (a === "m+") l.m += 5;
   if (a === "del") S.legs.splice(i, 1);
-  if (a === "type") { l.t = b.dataset.t; if (l.n === TYPES[l.t][0] || !l.n || Object.values(TYPES).some(x => x[0] === l.n)) l.n = TYPES[l.t][0]; delete l.live }
+  if (a === "type") { if (l.t !== b.dataset.t) { l.t = b.dataset.t; l.n = TYPES[l.t][0]; delete l.live } }
   if (a === "relive") { const line = l.live && l.live.line; l.live = { op: l.t === "bus" ? (l.live.op || "kmb") : l.t }; if (l.t === "mtr" && line) { l.live.line = line; try { l.live._st = (await mtrStations(line)).map(s => ({ id: s.code, name: s.name })); l.live._b = l.live._a = "" } catch (err) {} } }
   if (a === "find") {
     l.live = l.live || { op: l.t === "bus" ? "kmb" : "gmb" }; const v = l.live, box = b.closest(".leg");
@@ -530,7 +536,7 @@ $("fBuffer").onchange = e => { S.buffer = Math.max(0, +e.target.value || 0); sav
 
 function renderMs() {
   const tot = msSum() || 1, leave = new Date(atTime(new Date(), S.arrive) - (legSum() + (+S.buffer || 0)) * MIN);
-  $("pbar").innerHTML = S.ms.map((m, i) => `<div style="flex:${Math.max(m.m, 1)};background:${MSCOL[i % MSCOL.length]}">${m.m >= 8 ? esc(m.n) : ""}</div>`).join("");
+  $("pbar").innerHTML = S.ms.map((m, i) => `<div style="flex:${Math.max(m.m, 1)};background:${MSCOL[i % MSCOL.length]}">${shortLab(m.n, m.m >= 12)}</div>`).join("");
   $("pends").innerHTML = `<span><b>${hm(new Date(leave - msSum() * MIN))}</b> 起身</span><span>共 ${msSum()} 分</span><span><b>${hm(leave)}</b> 出門</span>`;
   $("msRows").innerHTML = S.ms.map((m, i) => `<div class="prow" data-i="${i}"><i class="dot" style="background:${MSCOL[i % MSCOL.length]}"></i><input value="${esc(m.n)}" aria-label="名稱"><div class="step5"><button type="button" data-a="m-">−</button>${m.m}<button type="button" data-a="m+">+</button></div><div class="mv"><button type="button" data-a="up" aria-label="上移">▲</button><button type="button" data-a="dn" aria-label="下移">▼</button></div><button class="del" type="button" data-a="del" aria-label="刪除">×</button></div>`).join("");
 }
@@ -552,11 +558,11 @@ $("finish").onclick = () => { S.setup = true; save(); show("home"); if (!S.alarm
 const CP = w => `<span class="cp"><code>${esc(MYURL())}</code><button type="button" data-copy="${w}">Copy</button></span>`;
 const MYURL = () => location.origin + "/api/alarm?k=" + S.key + "&a=";
 const GUIDE = [
-  ["who", "細佬幫你睇住鬧鐘", "整一個 3 步捷徑，大約 3 分鐘", () => `<ol><li>整一個捷徑「<b>MeowAlarm</b>」：讀你開咗邊啲鬧鐘，報返俾我</li><li>設一個 Automation：每次閂 Clock App 就自動報</li></ol><div class="tip">💡 鬧鐘記得設 <b>Repeat</b>（例如 Weekdays）。朝早撳 Stop 之後佢會保持開住，唔使日日開返；冇 Repeat 嘅鬧鐘響完會自動熄。</div>`],
+  ["who", "進階設定：自動偵測鬧鐘", "選用 · 大約 3 分鐘", () => `<p style="margin:0 0 8px"><b>呢個設定做咩？</b>做咗之後，細佬會自動知你聽日 set 咗鬧鐘未，鬧鐘遲過起身時間或者未 set 都會提你。<b>唔做都用得 app</b>，只係冇鬧鐘檢查。</p><ol><li>整一個捷徑「<b>MeowAlarm</b>」：讀你開咗邊啲鬧鐘，報返俾我</li><li>開一個 Automation：每次閂 Clock App 就自動跑佢</li></ol><div class="tip">💡 鬧鐘記得設 <b>Repeat</b>（例如 Weekdays）。朝早撳 Stop 之後佢會保持開住，唔使日日開返；冇 Repeat 嘅鬧鐘響完會自動熄。</div>`],
   ["wait", "① Find Alarms", "開 Shortcuts App → 右上角 ＋", () => `<ol><li>搜尋 <b>Find Alarms</b>，撳一下加入</li><li>撳 <b>Add Filter</b>，再撳藍色嘅 <b>Label</b> → 改揀 <b>Is Enabled</b></li></ol><div class="tip">⚠️ 一定要見到「<b>Is Enabled</b>」，唔係「Label is Enabled」，否則會一個鬧鐘都搵唔到。</div>`],
   ["hold", "② Combine Text", "將幾個鬧鐘時間合埋一行", () => `<ol><li>搜尋 <b>Combine Text</b>，撳一下加入</li><li>撳藍色 <b>Text</b> → 揀 <b>Alarms</b> → 再撳一下揀 <b>Time</b></li><li>撳「with <b>New Lines</b>」→ 改做 <b>Custom</b>，填一個英文逗號 <code>,</code></li></ol><div class="tip">唔加呢步，有幾多個鬧鐘都只會報第一個。</div>`],
   ["got", "③ Get Contents of URL", "報俾細佬", () => `<ol><li>搜尋 <b>Get Contents of URL</b>，撳一下加入</li><li>撳藍色 <b>URL</b>，<b>Paste</b> 你專屬嘅網址：${CP("url")}</li><li>游標放喺網址<b>最尾</b>（<code>&a=</code> 後面），喺鍵盤上面揀 <b>Combined Text</b></li><li>頂部撳個名，改做 <code>MeowAlarm</code> → <b>Done</b></li></ol><div class="tip">撳 ▶️ 試行：見到「細佬：收到！」同晒你所有鬧鐘時間就啱。<br>如果話 invalid URL：喺 ②③ 中間加 <b>URL Encode</b>（Text 揀 Combined Text），網址最尾改用 URL Encoded Text。</div>`],
-  ["peek", "④ 閂 Clock 就自動報", "新版 Shortcuts：條件直接加喺捷徑度", () => `<ol><li>喺 <b>MeowAlarm</b> 捷徑入面，撳頂部個名旁邊嘅 ⌄ 或者「＋ Add Trigger / When」</li><li>揀 <b>App</b> → 揀 <b>Clock</b></li><li>撳藍色 <b>Opened</b> → 改做 <b>Closed</b></li><li><b>Automation</b> 開住（綠色），<b>Notify</b> 熄住</li></ol><div class="tip">舊版 iOS：去底部 <b>Automation</b> 分頁 → ＋ → App → Clock → Is Closed → Run Immediately → 揀 MeowAlarm。<br>如果你係另外開咗一個 When Clock 嘅新捷徑，喺下面加 <b>Run Shortcut → MeowAlarm</b> 就得。</div>`],
+  ["peek", "④ 開 Automation（閂 Clock 就自動報）", "Shortcuts 主頁 → 右上角 ＋ 開一個新捷徑", () => `<ol><li>撳頂部 <b>Add Trigger</b>（或「When」）→ 揀 <b>App</b></li><li>App 揀 <b>Clock</b></li><li>撳藍色 <b>Opened</b> → 改做 <b>Closed</b></li><li><b>Automation</b> 開關撥<b>開</b>（綠色），<b>Notify</b> 熄住</li><li>下面撳 <b>＋</b> 加 action：搜尋 <b>Run Shortcut</b> → 揀 <b>MeowAlarm</b></li><li>撳左上 ‹ 儲存</li></ol><div class="tip">舊版 iOS：去 Shortcuts 底部 <b>Automation</b> 分頁 → ＋ → <b>App</b> → <b>Clock</b> → 剔 <b>Is Closed</b> → <b>Run Immediately</b> → 揀 MeowAlarm。</div>`],
   ["yeah", "⑤ 試一次！", "", () => `<ol><li>開 Clock App，set 一個 Weekdays 重複嘅起身鬧鐘</li><li>閂咗 Clock App</li><li>返嚟呢度，見到綠色「鬧鐘 ✓」就成功 🎉</li></ol><div class="tip">⚠️ 鎖屏撳「Skip」嘅鬧鐘我分唔出，會當佢仲會響。</div>`],
 ];
 let gi = 0;
