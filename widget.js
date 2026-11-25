@@ -38,18 +38,20 @@ function plan(S, now, etas) {
 }
 const MSCOL = ["#f5c49c", "#ffe98a", "#ffd6e0", "#e6dcff", "#bff0d9", "#d8ebff"];
 // 彩色時間線：milestone + 出門→到，直線標示而家
-function drawBar(p, now, W) {
-  const H = 34, R = 9, ctx = new DrawContext(); ctx.size = new Size(W, H); ctx.opaque = false; ctx.respectScreenScale = true;
+function drawBar(p, now, W, walker) {
+  const TOP = 30, H = TOP + 34, R = 9, ctx = new DrawContext(); ctx.size = new Size(W, H); ctx.opaque = false; ctx.respectScreenScale = true;
   const t0 = +p.wake, t1 = +p.arriveEst, span = Math.max(1, t1 - t0);
   const segs = p.pts.map((x, i) => ({ a: +x.s, b: +x.e, c: MSCOL[i % MSCOL.length] })).concat([{ a: +p.leave, b: t1, c: "#d8ebff" }]);
-  const bg = new Path(); bg.addRoundedRect(new Rect(0, 8, W, 18), R, R); ctx.addPath(bg); ctx.setFillColor(new Color("#f1e3d6")); ctx.fillPath();
+  const PAD = 16, BW = W - PAD * 2;
+  const bg = new Path(); bg.addRoundedRect(new Rect(PAD, TOP + 8, BW, 18), R, R); ctx.addPath(bg); ctx.setFillColor(new Color("#f1e3d6")); ctx.fillPath();
   for (const sg of segs) {
-    const x = (sg.a - t0) / span * W, w = Math.max(2, (sg.b - sg.a) / span * W - 2);
-    const r = new Path(); r.addRoundedRect(new Rect(x, 8, w, 18), 6, 6); ctx.addPath(r);
+    const x = PAD + (sg.a - t0) / span * BW, w = Math.max(2, (sg.b - sg.a) / span * BW - 2);
+    const r = new Path(); r.addRoundedRect(new Rect(x, TOP + 8, w, 18), 6, 6); ctx.addPath(r);
     ctx.setFillColor(new Color(sg.c, now >= sg.b ? 0.35 : 1)); ctx.fillPath();
   }
-  const nx = Math.min(W - 2, Math.max(2, (now - t0) / span * W));
-  if (now >= t0 && now <= t1) { ctx.setFillColor(new Color("#e5486b")); ctx.fillRect(new Rect(nx - 1.5, 2, 3, 30)); ctx.fillEllipse(new Rect(nx - 5, 0, 10, 10)) }
+  const nx = PAD + Math.min(BW, Math.max(0, (now - t0) / span * BW));
+  if (now >= t0 && now <= t1) { ctx.setFillColor(new Color("#e5486b")); ctx.fillRect(new Rect(nx - 1.5, TOP + 2, 3, 30)) }
+  if (walker) ctx.drawImageInRect(walker, new Rect(nx - 17, 0, 34, 34));
   return ctx.getImage();
 }
 const clean = n => String(n).trim();
@@ -74,15 +76,20 @@ async function build() {
 
   const fam = config.widgetFamily || "medium";
   const row = w.addStack(); row.centerAlignContent();
-  const i = await img(pose); if (i) { const im = row.addImage(i); im.imageSize = fam === "small" ? new Size(46, 46) : new Size(fam === "large" ? 96 : 60, fam === "large" ? 96 : 60); row.addSpacer(10) }
+  const i = await img(pose); if (i) { const im = row.addImage(i); im.imageSize = fam === "small" ? new Size(46, 46) : new Size(fam === "large" ? 96 : 46, fam === "large" ? 96 : 46); row.addSpacer(10) }
   const col = row.addStack(); col.layoutVertically();
-  const day = col.addText((p.isToday ? "今日" : "聽日") + " · " + ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()]); day.font = Font.mediumSystemFont(11); day.textColor = C.dim;
-  const l1 = col.addText(lab); l1.font = Font.boldSystemFont(13); l1.textColor = late ? C.berry : C.dim; l1.lineLimit = 1;
-  if (target) { const dt = col.addDate(target); dt.applyTimerStyle(); dt.font = Font.heavyRoundedSystemFont(fam === "small" ? 22 : 28); dt.textColor = C.ink; dt.minimumScaleFactor = 0.5 }
+  const dayTxt = (p.isToday ? "今日" : "聽日") + " · " + ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()];
+  if (fam === "medium") { const d1 = col.addText(dayTxt + " · " + lab); d1.font = Font.boldSystemFont(12); d1.textColor = late ? C.berry : C.dim; d1.lineLimit = 1 }
+  else { const day = col.addText(dayTxt); day.font = Font.mediumSystemFont(11); day.textColor = C.dim; const l1 = col.addText(lab); l1.font = Font.boldSystemFont(13); l1.textColor = late ? C.berry : C.dim; l1.lineLimit = 1 }
+  if (target) { const dt = col.addDate(target); dt.applyTimerStyle(); dt.font = Font.heavyRoundedSystemFont(fam === "small" ? 22 : fam === "large" ? 30 : 24); dt.textColor = C.ink; dt.minimumScaleFactor = 0.5 }
   else { const t2 = col.addText(late ? "應該 " + hm(p.leave) + " 出門" : "🐾"); t2.font = Font.heavyRoundedSystemFont(22); t2.textColor = late ? C.berry : C.ink }
   if (fam !== "small") {
     w.addSpacer(6);
-    const bar = w.addImage(drawBar(p, now, fam === "large" ? 320 : 300)); bar.imageSize = new Size(fam === "large" ? 320 : 300, 34); bar.centerAlignImage();
+    const st = (lg && lg.out) ? "🐾 出咗門" : now < p.wake ? "😴 未到起身時間" : cur ? "而家：" + clean(cur.n) : now < p.leave ? "準備出門" : "⚠️ 遲咗出門";
+    const sl = w.addText(st); sl.font = Font.boldSystemFont(12); sl.textColor = late ? C.berry : C.ginger;
+    const walker = await img((lg && lg.out) ? "go" : "ok");
+    const BWID = fam === "large" ? 320 : 300;
+    const bar = w.addImage(drawBar(p, now, BWID, walker)); bar.imageSize = new Size(BWID, 64); bar.centerAlignImage();
     const ends = w.addStack(); const e1 = ends.addText(hm(p.wake) + " 起身"); ends.addSpacer(); const e2 = ends.addText(hm(p.leave) + " 出門"); ends.addSpacer(); const e3 = ends.addText(hm(p.arriveEst) + " 到");
     for (const e of [e1, e2, e3]) { e.font = Font.mediumSystemFont(10); e.textColor = C.dim }
     w.addSpacer(4);
