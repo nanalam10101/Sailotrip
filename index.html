@@ -183,7 +183,7 @@ nav svg{width:24px;height:24px}
       <div class="next"><button class="pri" data-go="2" type="button">下一步</button></div>
     </div>
     <div id="st2" class="hide">
-      <div class="intro"><img src="/cats/wait.webp" alt=""><p><b>呀妹：</b>「出門前要做嘅事排好次序，我幫你逐樣倒數。」</p></div>
+      <div class="intro"><img src="/cats/wait.webp" alt=""><p><b>細佬：</b>「出門前要做嘅事排好次序，我幫你逐樣倒數。」</p></div>
       <h1>出門前要做咩？</h1>
       <p class="muted">− / + 一撳 5 分鐘；撳名改名；× 刪除；▲▼ 排次序</p>
       <div class="pbar" id="pbar"></div>
@@ -200,6 +200,9 @@ nav svg{width:24px;height:24px}
       <p class="muted">加咗之後，喵喵出行會好似 app 咁喺主畫面出現，全螢幕開，唔使每次開 Safari。</p>
       <button class="pill" type="button" data-a2hs style="background:var(--sky);min-height:44px">📖 教我加到主畫面</button>
       <p class="muted">你嘅設定會自動備份，加到主畫面之後一開就有，唔使再設定。</p>
+      <h2>📱 主畫面 widget</h2>
+      <p class="muted">唔使開 app，喺 iPhone 主畫面都見到細佬、倒數同鬧鐘狀態。選用。</p>
+      <button class="pill" type="button" data-widget style="background:var(--mint);min-height:44px">📖 教我裝 widget</button>
       <h2>連接 iPhone 鬧鐘</h2>
       <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 Shortcut 幫手報返嚟。呢個係進階設定，唔做都用得 app。細佬只收鬧鐘時間同隨機 key，冇個人資料。</p>
       <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">⚙️ 進階：自動偵測鬧鐘（選用）</button>
@@ -645,12 +648,30 @@ $("ov").addEventListener("click", async e => {
 document.addEventListener("click", e => {
   if (e.target.closest("[data-guide]")) openGuide(0);
   if (e.target.closest("[data-a2hs]")) openA2HS();
+  if (e.target.closest("[data-widget]")) openWidget();
+  if (e.target.id === "wCopy") {
+    if (!widgetCode) { e.target.textContent = "準備緊…再撳一次"; return }
+    navigator.clipboard.writeText(widgetCode).then(() => { e.target.textContent = "Copied ✓ 去 Scriptable 貼上" }).catch(() => { e.target.textContent = "Copy 唔到，再試一次" });
+  }
   if (e.target.id === "a2hsX") { S.a2hsHide = true; save(); renderHome() }
 });
+let widgetCode = "";
+function openWidget() {
+  widgetCode = "";
+  fetch("/widget.js", { cache: "no-store" }).then(r => r.text()).then(t => { widgetCode = t.replace("__KEY__", S.key).replace("__BASE__", location.origin) }).catch(() => {});
+  $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="裝 widget"><div class="gh"><img src="${cat("cool")}" alt=""><div><b>裝 iPhone widget</b><small>選用 · 大約 2 分鐘 · 要用免費 app「Scriptable」</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb"><ol>
+    <li>App Store 下載 <b>Scriptable</b><i class="zh">（免費，icon 係一個藍色 S）</i></li>
+    <li>撳呢度 copy 你專屬嘅 widget code：<br><button type="button" class="pill" id="wCopy" style="background:var(--sky);margin-top:6px">📋 Copy widget code</button></li>
+    <li>開 Scriptable → 右上 <b>＋</b> → 撳空白位 → <b>Paste</b><i class="zh">（貼上）</i>→ 頂部個名改做 <code>喵喵出行</code> → <b>Done</b></li>
+    <li>返主畫面，長按空白位 → 左上 <b>Edit</b> → <b>Add Widget</b><i class="zh">（加入小工具）</i>→ 搵 <b>Scriptable</b> → 揀<b>中型</b>（Medium）→ <b>Add Widget</b></li>
+    <li>撳一下個新 widget → <b>Script</b> 揀 <b>喵喵出行</b> → 撳外面完成</li>
+  </ol><div class="tip">Widget 每 5 分鐘左右更新一次，倒數秒數會自己跳。撳 widget 會開返喵喵出行。<br>⚠️ code 入面有你嘅私人 key，唔好 send 俾人；朋友要自己喺佢部機 copy。</div></div><div class="gf"><span class="muted" style="flex:1;margin:0">撳外面都可以閂</span><button class="pri" type="button" data-g="x">好</button></div></div>`;
+  $("ov").classList.remove("hide");
+}
 function openA2HS() {
-  $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="加到主畫面"><div class="gh"><img src="${cat("ok")}" alt=""><div><b>加到主畫面</b><small>用 iPhone Safari，大約 10 秒</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb"><ol>
-    <li>用 <b>Safari</b> 開 <code>${esc(location.host)}</code><i class="zh">（Chrome 唔得）</i></li>
-    <li>撳底部或者網址列旁邊嘅 <b>Share</b><i class="zh">（分享）</i>掣：一個方格加向上箭咀 ⬆️</li>
+  $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="加到主畫面"><div class="gh"><img src="${cat("ok")}" alt=""><div><b>加到主畫面</b><small>Safari 或 Chrome 都得，大約 10 秒</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb"><ol>
+    <li>用 <b>Safari</b> 或者 <b>Chrome</b> 開 <code>${esc(location.host)}</code></li>
+    <li>撳 <b>Share</b><i class="zh">（分享）</i>掣：一個方格加向上箭咀 ⬆️<br><i class="zh">Safari：喺底部／網址列旁邊；Chrome：喺網址列右邊</i></li>
     <li>向下碌，撳 <b>Add to Home Screen</b><i class="zh">（加入主畫面）</i>。如果見唔到，撳最底 <b>Edit Actions</b><i class="zh">（編輯動作）</i> 加返佢</li>
     <li>名會自動係「<b>喵喵出行</b>」，撳右上 <b>Add</b><i class="zh">（加入）</i></li>
     <li>返主畫面，搵「哇！」細佬個 icon，以後由佢開 🐱</li>
