@@ -12,11 +12,11 @@ const parseTimes = v => String(v || "")
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
-  if (req.query && req.query.ping) return res.status(200).json({ ok: true, hasToken: !!tokenName(), tokenVar: tokenName() || null, blobVars: Object.keys(process.env).filter(k => /BLOB/.test(k)) });
+  if (req.query && req.query.ping) return res.status(200).json({ ok: true, hasToken: !!tokenName(), blobVars: Object.keys(process.env).filter(k => /BLOB/.test(k)) });
   try {
     const { put, list } = await import("@vercel/blob");
-    const token = tokenName() && process.env[tokenName()];
-    if (!token) return res.status(200).json({ alarms: null, error: "Blob 未 connect" });
+    // 有舊式 READ_WRITE_TOKEN 就用；冇就交俾 @vercel/blob 自己用新式 store 設定認證
+    const token = (tokenName() && process.env[tokenName()]) || undefined;
     if (req.method === "POST") {
       let b = req.body;
       if (typeof b === "string") { try { b = JSON.parse(b) } catch (e) { b = Object.fromEntries(new URLSearchParams(b)) } }
