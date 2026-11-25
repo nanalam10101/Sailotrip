@@ -1,6 +1,6 @@
 // 喵喵出行 iPhone Widget（Scriptable）
 // 唔使改任何嘢：會自動讀你喺喵喵出行入面嘅設定、實時班次同鬧鐘狀態
-const KEY = "__KEY__";
+let KEY = "__KEY__";
 const BASE = "__BASE__";
 
 const MIN = 60000;
@@ -39,7 +39,7 @@ function plan(S, now, etas) {
 const MSCOL = ["#f5c49c", "#ffe98a", "#ffd6e0", "#e6dcff", "#bff0d9", "#d8ebff"];
 // 彩色時間線：milestone + 出門→到，直線標示而家
 function drawBar(p, now, W, walker) {
-  const TOP = 30, H = TOP + 34, R = 9, ctx = new DrawContext(); ctx.size = new Size(W, H); ctx.opaque = false; ctx.respectScreenScale = true;
+  const TOP = 22, H = TOP + 34, R = 9, ctx = new DrawContext(); ctx.size = new Size(W, H); ctx.opaque = false; ctx.respectScreenScale = true;
   const t0 = +p.wake, t1 = +p.arriveEst, span = Math.max(1, t1 - t0);
   const segs = p.pts.map((x, i) => ({ a: +x.s, b: +x.e, c: MSCOL[i % MSCOL.length] })).concat([{ a: +p.leave, b: t1, c: "#d8ebff" }]);
   const PAD = 16, BW = W - PAD * 2;
@@ -51,7 +51,7 @@ function drawBar(p, now, W, walker) {
   }
   const nx = PAD + Math.min(BW, Math.max(0, (now - t0) / span * BW));
   if (now >= t0 && now <= t1) { ctx.setFillColor(new Color("#e5486b")); ctx.fillRect(new Rect(nx - 1.5, TOP + 2, 3, 30)) }
-  if (walker) ctx.drawImageInRect(walker, new Rect(nx - 17, 0, 34, 34));
+  if (walker) ctx.drawImageInRect(walker, new Rect(nx - 19, 4, 38, 38));
   return ctx.getImage();
 }
 const clean = n => String(n).trim();
@@ -60,7 +60,7 @@ function poseFor(n) { if (/貓|餵/.test(n)) return "hungry"; if (/妝/.test(n))
 async function build() {
   const w = new ListWidget(); w.backgroundColor = C.bg; w.setPadding(12, 14, 12, 14);
   let S = null, alarm = null, etas = [], err = "";
-  try { const d = await json("/api/state?k=" + KEY); S = d && d.s } catch (e) { err = "連唔到喵喵出行" }
+  try { let d = await json("/api/state?k=" + KEY); if (d && d.s && d.s.movedTo) { KEY = d.s.movedTo; d = await json("/api/state?k=" + KEY) } S = d && d.s } catch (e) { err = "連唔到喵喵出行" }
   if (!S || !S.setup) { const t = w.addText(err || "未設定：先喺喵喵出行完成設定"); t.font = Font.boldSystemFont(14); t.textColor = C.ink; return w }
   w.url = BASE + "/?k=" + KEY;
   const lv = S.legs.find(l => l.live && l.live.stop);
@@ -89,7 +89,7 @@ async function build() {
     const sl = w.addText(st); sl.font = Font.boldSystemFont(12); sl.textColor = late ? C.berry : C.ginger;
     const walker = await img((lg && lg.out) ? "go" : "ok");
     const BWID = fam === "large" ? 320 : 300;
-    const bar = w.addImage(drawBar(p, now, BWID, walker)); bar.imageSize = new Size(BWID, 64); bar.centerAlignImage();
+    const bar = w.addImage(drawBar(p, now, BWID, walker)); bar.imageSize = new Size(BWID, 56); bar.centerAlignImage();
     const ends = w.addStack(); const e1 = ends.addText(hm(p.wake) + " 起身"); ends.addSpacer(); const e2 = ends.addText(hm(p.leave) + " 出門"); ends.addSpacer(); const e3 = ends.addText(hm(p.arriveEst) + " 到");
     for (const e of [e1, e2, e3]) { e.font = Font.mediumSystemFont(10); e.textColor = C.dim }
     w.addSpacer(4);
