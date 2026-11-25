@@ -127,7 +127,22 @@ nav svg{width:24px;height:24px}
 .pop p{margin:0 0 14px;color:#5c4636}
 .pop button{background:var(--ginger);color:#fff;border-radius:16px;padding:12px 28px;font-weight:900}
 @keyframes pop{from{transform:scale(.6);opacity:0}}
-@media(prefers-reduced-motion:reduce){.walker,.stk,.pop{animation:none}.walker{transition:none}}
+.guide{background:#fff;border-radius:28px;width:min(100%,420px);max-height:88svh;display:flex;flex-direction:column;overflow:hidden;animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+.guide .gh{background:var(--butter);padding:14px 16px 10px;display:flex;align-items:center;gap:10px}
+.guide .gh img{width:76px;flex:none}
+.guide .gh b{font:900 19px/1.25 "Noto Sans TC",sans-serif;display:block}
+.guide .gh small{color:#5c4636;font-size:13px;display:block}
+.guide .gb{padding:14px 18px;overflow-y:auto;flex:1}
+.guide .gb ol{padding-left:1.2em;margin:0}.guide .gb li{margin:7px 0}
+.guide .gb .tip{background:var(--mint);border-radius:14px;padding:10px 12px;margin-top:10px;font-size:14px}
+.guide .gb .cp{display:flex;gap:8px;align-items:center;margin:4px 0;flex-wrap:wrap}
+.guide .gb .cp button{background:var(--sky);border-radius:99px;padding:6px 12px;font-weight:700;font-size:13px;white-space:nowrap}
+.guide .gf{display:flex;align-items:center;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.guide .dots{flex:1;display:flex;gap:5px;justify-content:center}.guide .dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}.guide .dots i.on{background:var(--ginger);width:18px;border-radius:99px}
+.guide .gf button{border-radius:14px;padding:10px 16px;font-weight:900;background:var(--card);min-height:44px}
+.guide .gf .pri{background:var(--ginger);color:#fff}
+.guide .x{margin-left:auto;width:40px;height:40px;border-radius:50%;background:#fff;font-size:20px;flex:none}
+@media(prefers-reduced-motion:reduce){.walker,.stk,.pop,.guide{animation:none}.walker{transition:none}}
 </style>
 </head>
 <body>
@@ -161,23 +176,10 @@ nav svg{width:24px;height:24px}
       <h1>最後兩樣</h1>
       <label class="field">如果搭的士返工，大約幾錢？<input id="fTaxi" type="number" min="0" inputmode="numeric"></label>
       <h2>連接 iPhone 鬧鐘</h2>
-      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，所以要用「捷徑」幫手報返嚟。做一次就得。</p>
-      <p style="margin:6px 0">你嘅 key：<code id="keyShow"></code> <button class="pill" id="copyKey" type="button">Copy</button></p>
+      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要用「捷徑」幫手報返嚟。跟教學做一次，大約 5 分鐘。</p>
+      <p style="margin:6px 0">你嘅 key：<code id="keyShow"></code></p>
       <p style="margin:6px 0">網址：<code id="apiShow"></code></p>
-      <b>捷徑 A「貓貓報鬧鐘」（讀鬧鐘）</b>
-      <ol class="how">
-        <li>捷徑 App → ＋ → 加「尋找鬧鐘」（Find Alarms），條件：<b>已啟用</b> 是 開</li>
-        <li>加「重複每一項」→ 入面加「格式化日期」：日期＝重複項目嘅<b>時間</b>，格式自訂 <code>HH:mm</code></li>
-        <li>重複完之後加「合併文字」，用逗號合併</li>
-        <li>加「取得 URL 內容」：上面嘅網址，方法 POST，要求內文 JSON：<code>k</code>＝你嘅 key，<code>alarms</code>＝合併文字</li>
-        <li>名改做 <code>貓貓報鬧鐘</code></li>
-        <li>自動化 → 新增：「App → 時鐘 → 已關閉」→ 執行「貓貓報鬧鐘」→ 揀「立即執行」。再加一個「時間 22:00 每日」都係執行佢</li>
-      </ol>
-      <b>捷徑 B「貓貓set鬧鐘」（一鍵 set）</b>
-      <ol class="how">
-        <li>新捷徑 → 接收「文字」輸入 → 加「製作鬧鐘」，時間＝「捷徑輸入」</li>
-        <li>最後加「執行捷徑：貓貓報鬧鐘」，咁 set 完會即刻同步</li>
-      </ol>
+      <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">📖 睇教學（8 步）</button>
       <div class="next"><button data-go="2" type="button">上一步</button><button class="pri" id="finish" type="button">完成，開始！</button></div>
     </div>
   </section>
@@ -368,7 +370,7 @@ function renderHome() {
   const dayWord = dkey(p.day) === dkey(now) ? "今日" : (p.day - new Date(now).setHours(0, 0, 0, 0) <= 86400000 ? "聽日" : ["日", "一", "二", "三", "四", "五", "六"].map(x => "星期" + x)[p.day.getDay()]);
   if (out || now > p.wake) $("alarmCard").innerHTML = "";
   else if (a.st === "ok") $("alarmCard").innerHTML = `<div class="card ok"><img src="${cat("got")}" alt=""><div class="t"><strong>${dayWord} ${a.hit} 鬧鐘 ✓</strong><small>要 ${hm(p.wake)} 起身 · 自動偵測，同步 ${hm(a.at)}${a.stale ? "（舊咗）" : ""}</small></div></div>`;
-  else $("alarmCard").innerHTML = `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未連接鬧鐘捷徑" : dayWord + "要 " + hm(p.wake) + " 起身，未有鬧鐘"}</strong><small>${a.st === "none" ? "去「設定」第 3 步跟住做一次" : "呀妹：「你唔 set 我就唔瞓！」"}</small><div class="act"><a href="${sc}">一鍵 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a></div></div></div>`;
+  else $("alarmCard").innerHTML = `<div class="card no"><img src="${cat("peek")}" alt=""><div class="t"><strong>${a.st === "none" ? "未連接鬧鐘捷徑" : dayWord + "要 " + hm(p.wake) + " 起身，未有鬧鐘"}</strong><small>${a.st === "none" ? "跟住教學做一次，之後自動偵測" : "呀妹：「你唔 set 我就唔瞓！」"}</small><div class="act">${a.st === "none" ? `<button type="button" data-guide>📖 教我 set</button>` : `<a href="${sc}">一鍵 set ${hm(p.wake)}</a><a href="${rs}">重新檢查</a><button type="button" data-guide>教學</button>`}</div></div></div>`;
   // buttons
   $("bOut").classList.toggle("done", !!out); $("bOutT").textContent = out ? "已出門 ✓" : "出咗門";
   $("bTaxiT").textContent = lg && lg.taxi ? "已記的士" : "搭咗的士";
@@ -519,9 +521,35 @@ $("msRows").addEventListener("click", e => {
 $("msRows").addEventListener("change", e => { const r = e.target.closest(".prow"); if (!r || e.target.tagName !== "INPUT") return; S.ms[+r.dataset.i].n = e.target.value; save(); renderMs() });
 $("addMs").onclick = () => { S.ms.push({ n: "新項目", m: 5 }); save(); renderMs() };
 $("fTaxi").onchange = e => { S.taxi = Math.max(0, +e.target.value || 0); save() };
-$("copyKey").onclick = async () => { try { await navigator.clipboard.writeText(S.key); $("copyKey").textContent = "Copied ✓" } catch (e) {} };
 document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { step = +b.dataset.go; renderSetup(); scrollTo(0, 0) });
-$("finish").onclick = () => { S.setup = true; save(); show("home"); popup("got", "設定好！", "細佬同呀妹會幫你睇住時間 🐾") };
+$("finish").onclick = () => { S.setup = true; save(); show("home"); if (!S.alarm && !S.guideSeen) openGuide(0); else popup("got", "設定好！", "細佬同呀妹會幫你睇住時間 🐾") };
+
+// ---------- 捷徑教學 ----------
+const CP = w => `<span class="cp"><code>${w === "key" ? esc(S.key) : esc(location.origin + "/api/alarm")}</code><button type="button" data-copy="${w}">Copy</button></span>`;
+const GUIDE = [
+  ["who", "細佬幫你睇住鬧鐘", "做 2 個捷徑 + 2 個自動化，大約 5 分鐘", () => `<ol><li><b>捷徑 A「貓貓報鬧鐘」</b>：讀你開咗邊啲鬧鐘，報返俾 app</li><li><b>自動化</b>：每次閂「時鐘」App 同每晚 22:00 自動報</li><li><b>捷徑 B「貓貓set鬧鐘」</b>：app 入面一鍵 set 鬧鐘</li></ol><div class="tip">💡 鬧鐘記得設「重複」（例如星期一至五），朝早撳停之後佢會保持開住，唔使日日開返。單次鬧鐘響完會自動熄。</div>`],
+  ["wait", "捷徑 A ①：搵鬧鐘", "開「捷徑」App", () => `<ol><li>撳底部「捷徑」→ 右上角 <b>＋</b></li><li>搜尋「<b>尋找鬧鐘</b>」（Find Alarms）加入</li><li>撳「新增過濾條件」→ 揀「<b>已啟用</b>」「是」，開關撥<b>開</b></li></ol>`],
+  ["ok", "捷徑 A ②：變做時間", "", () => `<ol><li>搜尋「<b>重複每一項</b>」加入（輸入會自動係「鬧鐘」）</li><li>喺重複<b>入面</b>加「<b>格式化日期</b>」</li><li>撳「日期」→ 揀「重複項目」→ 再揀「<b>時間</b>」</li><li>日期格式揀「<b>自訂</b>」，填 <code>HH:mm</code></li></ol>`],
+  ["hold", "捷徑 A ③：合埋一行", "", () => `<ol><li>喺「結束重複」<b>下面</b>加「<b>合併文字</b>」</li><li>文字揀「<b>重複結果</b>」</li><li>分隔符揀「自訂」，填一個英文逗號 <code>,</code></li></ol>`],
+  ["got", "捷徑 A ④：送俾細佬", "最後一步，要 copy 兩樣嘢", () => `<ol><li>加「<b>取得 URL 內容</b>」，URL 貼呢個：${CP("url")}</li><li>撳箭咀展開：方法揀 <b>POST</b>，要求內文揀 <b>JSON</b></li><li>加欄位「文字」：鍵 <code>k</code>，值貼你嘅 key：${CP("key")}</li><li>再加「文字」：鍵 <code>alarms</code>，值揀「<b>合併的文字</b>」</li><li>撳頂部個名，改做 <code>貓貓報鬧鐘</code></li></ol>`],
+  ["peek", "自動化：唔使自己撳", "撳底部「自動化」→ ＋", () => `<ol><li>揀「<b>App</b>」→ 揀「<b>時鐘</b>」→ 剔「<b>已關閉</b>」</li><li>揀「<b>立即執行</b>」→ 下一步 → 揀「貓貓報鬧鐘」</li><li>再 <b>＋</b> 一個：「<b>特定時間</b>」22:00、每日、立即執行 → 都係揀「貓貓報鬧鐘」</li></ol><div class="tip">咁你每次喺時鐘 App 改完鬧鐘、閂咗佢，app 就會自動知。</div>`],
+  ["cool", "捷徑 B：一鍵 set", "返去「捷徑」→ ＋", () => `<ol><li>加「<b>製作鬧鐘</b>」，撳時間 → 揀「<b>捷徑輸入</b>」</li><li>撳頂部 ⓘ →「接收」只剔「<b>文字</b>」</li><li>下面加「<b>執行捷徑</b>」→ 揀「貓貓報鬧鐘」</li><li>名改做 <code>貓貓set鬧鐘</code></li></ol><div class="tip">名一定要一模一樣，app 嘅「一鍵 set」先搵到佢。</div>`],
+  ["yeah", "試一次！", "", () => `<ol><li>開「時鐘」App，set 一個平日重複嘅起身鬧鐘</li><li>閂咗時鐘 App（自動化會跑）</li><li>返嚟呢度，見到綠色「鬧鐘 ✓」就成功 🎉</li></ol><div class="tip">⚠️ 鎖屏撳「略過下一次」嘅鬧鐘，捷徑分唔出，app 會當佢仲會響。</div>`],
+];
+let gi = 0;
+function openGuide(i = 0) { gi = i; S.guideSeen = true; save(); drawGuide(); $("ov").classList.remove("hide") }
+function drawGuide() {
+  const [pose, t, sub, body] = GUIDE[gi], last = gi === GUIDE.length - 1;
+  $("ov").innerHTML = `<div class="guide" role="dialog" aria-modal="true" aria-label="捷徑教學"><div class="gh"><img src="${cat(pose)}" alt=""><div><small>${gi + 1} / ${GUIDE.length}</small><b>${t}</b><small>${sub}</small></div><button class="x" type="button" data-g="x" aria-label="關閉">×</button></div><div class="gb">${body()}</div><div class="gf"><button type="button" data-g="prev" ${gi ? "" : "disabled style='opacity:.4'"}>上一步</button><div class="dots">${GUIDE.map((_, j) => `<i class="${j === gi ? "on" : ""}"></i>`).join("")}</div><button class="pri" type="button" data-g="${last ? "x" : "next"}">${last ? "完成" : "下一步"}</button></div></div>`;
+}
+$("ov").addEventListener("click", async e => {
+  const g = e.target.closest("[data-g]"), c = e.target.closest("[data-copy]");
+  if (c) { try { await navigator.clipboard.writeText(c.dataset.copy === "key" ? S.key : location.origin + "/api/alarm"); c.textContent = "Copied ✓" } catch (err) { c.textContent = "長按上面複製" } return }
+  if (!g) { if (e.target === $("ov") && $("ov").querySelector(".guide")) $("ov").classList.add("hide"); return }
+  if (g.dataset.g === "x") { $("ov").classList.add("hide"); syncAlarm().then(() => view === "home" && renderHome()); return }
+  gi = Math.max(0, Math.min(GUIDE.length - 1, gi + (g.dataset.g === "next" ? 1 : -1))); drawGuide();
+});
+document.addEventListener("click", e => { if (e.target.closest("[data-guide]")) openGuide(0) });
 
 // ---------- views ----------
 let view = "";
