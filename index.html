@@ -143,6 +143,7 @@ nav svg{width:24px;height:24px}
 .guide .gh small{color:#5c4636;font-size:13px;display:block}
 .guide .gb{padding:14px 18px;overflow-y:auto;flex:1}
 .guide .gb ol{padding-left:1.2em;margin:0}.guide .gb li{margin:7px 0}
+.zh{font-style:normal;color:var(--dim);font-size:13px}
 .guide .gb .tip{background:var(--mint);border-radius:14px;padding:10px 12px;margin-top:10px;font-size:14px}
 .guide .gb .cp{display:flex;gap:8px;align-items:center;margin:4px 0;flex-wrap:wrap}
 .guide .gb .cp button{background:var(--sky);border-radius:99px;padding:6px 12px;font-weight:700;font-size:13px;white-space:nowrap}
@@ -187,7 +188,7 @@ nav svg{width:24px;height:24px}
       <h1>最後兩樣</h1>
       <label class="field">如果搭的士返工，大約幾錢？<input id="fTaxi" type="number" min="0" inputmode="numeric"></label>
       <h2>連接 iPhone 鬧鐘</h2>
-      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 Shortcut 幫手報返嚟。呢個係進階設定，唔做都用得 app。</p>
+      <p class="muted">iPhone 唔俾網頁直接讀鬧鐘，要整一個 Shortcut 幫手報返嚟。呢個係進階設定，唔做都用得 app。細佬只收鬧鐘時間同隨機 key，冇個人資料。</p>
       <button class="pill" type="button" data-guide style="background:var(--butter);min-height:44px">⚙️ 進階：自動偵測鬧鐘（選用）</button>
       <div class="next"><button data-go="2" type="button">上一步</button><button class="pri" id="finish" type="button">完成，開始！</button></div>
     </div>
@@ -229,6 +230,7 @@ nav svg{width:24px;height:24px}
     <div class="cal" id="cal"></div>
     <p class="muted">橙 = 準時　紅 = 遲到　斜紋 = 搭的士　灰 = 未記錄</p>
     <img class="stk" id="rewardCat" style="width:150px;margin-top:16px" alt="">
+    <div class="card" style="background:var(--butter);margin-top:20px"><img src="/cats/thanks.webp" alt=""><div class="t"><strong>分享喵喵出行俾朋友</strong><small>佢哋嘅設定同鬧鐘資料只會存喺自己部手機同自己嘅 key，唔會同你混埋。</small><div class="act"><button type="button" id="shareBtn">分享 / Copy 網址</button></div></div></div>
   </section>
 </main>
 
@@ -569,11 +571,11 @@ $("finish").onclick = () => { S.setup = true; save(); show("home"); if (!S.alarm
 const CP = w => `<span class="cp"><code>${esc(MYURL())}</code><button type="button" data-copy="${w}">Copy</button></span>`;
 const MYURL = () => location.origin + "/api/alarm?k=" + S.key + "&a=";
 const GUIDE = [
-  ["who", "進階設定：自動偵測鬧鐘", "選用 · 大約 3 分鐘", () => `<p style="margin:0 0 8px"><b>呢個設定做咩？</b>做咗之後，細佬會自動知你聽日 set 咗鬧鐘未，鬧鐘遲過起身時間或者未 set 都會提你。<b>唔做都用得 app</b>，只係冇鬧鐘檢查。</p><ol><li>整一個捷徑「<b>MeowAlarm</b>」：讀你開咗邊啲鬧鐘，報返俾我</li><li>開一個 Automation：每次閂 Clock App 就自動跑佢</li></ol><div class="tip">💡 鬧鐘記得設 <b>Repeat</b>（例如 Weekdays）。朝早撳 Stop 之後佢會保持開住，唔使日日開返；冇 Repeat 嘅鬧鐘響完會自動熄。</div>`],
-  ["wait", "① Find Alarms", "開 Shortcuts App → 右上角 ＋", () => `<ol><li>搜尋 <b>Find Alarms</b>，撳一下加入</li><li>撳 <b>Add Filter</b>，再撳藍色嘅 <b>Label</b> → 改揀 <b>Is Enabled</b></li></ol><div class="tip">⚠️ 一定要見到「<b>Is Enabled</b>」，唔係「Label is Enabled」，否則會一個鬧鐘都搵唔到。</div>`],
-  ["hold", "② Combine Text", "將幾個鬧鐘時間合埋一行", () => `<ol><li>搜尋 <b>Combine Text</b>，撳一下加入</li><li>撳藍色 <b>Text</b> → 揀 <b>Alarms</b> → 再撳一下揀 <b>Time</b></li><li>撳「with <b>New Lines</b>」→ 改做 <b>Custom</b>，填一個英文逗號 <code>,</code></li></ol><div class="tip">唔加呢步，有幾多個鬧鐘都只會報第一個。</div>`],
-  ["got", "③ Get Contents of URL", "報俾細佬", () => `<ol><li>搜尋 <b>Get Contents of URL</b>，撳一下加入</li><li>撳藍色 <b>URL</b>，<b>Paste</b> 你專屬嘅網址：${CP("url")}</li><li>游標放喺網址<b>最尾</b>（<code>&a=</code> 後面），喺鍵盤上面揀 <b>Combined Text</b></li><li>頂部撳個名，改做 <code>MeowAlarm</code> → <b>Done</b></li></ol><div class="tip">撳 ▶️ 試行：見到「細佬：收到！」同晒你所有鬧鐘時間就啱。<br>如果話 invalid URL：喺 ②③ 中間加 <b>URL Encode</b>（Text 揀 Combined Text），網址最尾改用 URL Encoded Text。</div>`],
-  ["peek", "④ 開 Automation（閂 Clock 就自動報）", "Shortcuts 主頁 → 右上角 ＋ 開一個新捷徑", () => `<ol><li>撳頂部 <b>Add Trigger</b>（或「When」）→ 揀 <b>App</b></li><li>App 揀 <b>Clock</b></li><li>撳藍色 <b>Opened</b> → 改做 <b>Closed</b></li><li><b>Automation</b> 開關撥<b>開</b>（綠色），<b>Notify</b> 熄住</li><li>下面撳 <b>＋</b> 加 action：搜尋 <b>Run Shortcut</b> → 揀 <b>MeowAlarm</b></li><li>撳左上 ‹ 儲存</li></ol><div class="tip">舊版 iOS：去 Shortcuts 底部 <b>Automation</b> 分頁 → ＋ → <b>App</b> → <b>Clock</b> → 剔 <b>Is Closed</b> → <b>Run Immediately</b> → 揀 MeowAlarm。</div>`],
+  ["who", "進階設定：自動偵測鬧鐘", "選用 · 大約 3 分鐘 · 按鈕名英文（中文）對照", () => `<p style="margin:0 0 8px"><b>呢個設定做咩？</b>做咗之後，細佬會自動知你聽日 set 咗鬧鐘未，鬧鐘遲過起身時間或者未 set 都會提你。<b>唔做都用得 app</b>，只係冇鬧鐘檢查。</p><ol><li>整一個捷徑「<b>MeowAlarm</b>」：讀你開咗邊啲鬧鐘，報返俾我</li><li>開一個 Automation：每次閂 Clock App 就自動跑佢</li></ol><div class="tip" style="background:var(--sky)">🔒 細佬只會收到你嘅<b>鬧鐘時間</b>同一個隨機 key，冇你個名、電話或者其他資料。</div><div class="tip">💡 鬧鐘記得設 <b>Repeat</b><i class="zh">（重複）</i>（例如 Weekdays）。朝早撳 Stop 之後佢會保持開住，唔使日日開返；冇 Repeat 嘅鬧鐘響完會自動熄。</div>`],
+  ["wait", "① Find Alarms", "開 Shortcuts App → 右上角 ＋", () => `<ol><li>搜尋 <b>Find Alarms</b><i class="zh">（尋找鬧鐘）</i>，撳一下加入</li><li>撳 <b>Add Filter</b><i class="zh">（加入過濾條件）</i>，再撳藍色嘅 <b>Label</b><i class="zh">（標籤）</i> → 改揀 <b>Is Enabled</b><i class="zh">（已啟用）</i></li></ol><div class="tip">⚠️ 一定要見到「<b>Is Enabled</b><i class="zh">（已啟用）</i>」，唔係「Label is Enabled」，否則會一個鬧鐘都搵唔到。</div>`],
+  ["hold", "② Combine Text", "將幾個鬧鐘時間合埋一行", () => `<ol><li>搜尋 <b>Combine Text</b><i class="zh">（合併文字）</i>，撳一下加入</li><li>撳藍色 <b>Text</b><i class="zh">（文字）</i> → 揀 <b>Alarms</b><i class="zh">（鬧鐘）</i> → 再撳一下揀 <b>Time</b><i class="zh">（時間）</i></li><li>撳「with <b>New Lines</b><i class="zh">（新行）</i>」→ 改做 <b>Custom</b><i class="zh">（自訂）</i>，填一個英文逗號 <code>,</code></li></ol><div class="tip">唔加呢步，有幾多個鬧鐘都只會報第一個。</div>`],
+  ["got", "③ Get Contents of URL", "報俾細佬", () => `<ol><li>搜尋 <b>Get Contents of URL</b><i class="zh">（取得URL內容）</i>，撳一下加入</li><li>撳藍色 <b>URL</b>，<b>Paste</b><i class="zh">（貼上）</i> 你專屬嘅網址：${CP("url")}</li><li>游標放喺網址<b>最尾</b>（<code>&a=</code> 後面），喺鍵盤上面揀 <b>Combined Text</b><i class="zh">（合併的文字）</i></li><li>頂部撳個名，改做 <code>MeowAlarm</code> → <b>Done</b><i class="zh">（完成）</i></li></ol><div class="tip">撳 ▶️ 試行：見到「細佬：收到！」同晒你所有鬧鐘時間就啱。<br>如果話 invalid URL：喺 ②③ 中間加 <b>URL Encode</b><i class="zh">（URL 編碼）</i>（Text 揀 Combined Text），網址最尾改用 URL Encoded Text。</div>`],
+  ["peek", "④ 開 Automation（閂 Clock 就自動報）", "Shortcuts 主頁 → 右上角 ＋ 開一個新捷徑", () => `<ol><li>撳頂部 <b>Add Trigger</b><i class="zh">（加入觸發條件）</i>（或「When」）→ 揀 <b>App</b></li><li>App 揀 <b>Clock</b><i class="zh">（時鐘）</i></li><li>撳藍色 <b>Opened</b><i class="zh">（已開啟）</i> → 改做 <b>Closed</b><i class="zh">（已關閉）</i></li><li><b>Automation</b><i class="zh">（自動化）</i> 開關撥<b>開</b>（綠色），<b>Notify</b><i class="zh">（通知）</i> 熄住</li><li>下面撳 <b>＋</b> 加 action：搜尋 <b>Run Shortcut</b><i class="zh">（執行捷徑）</i> → 揀 <b>MeowAlarm</b></li><li>撳左上 ‹ 儲存</li></ol><div class="tip">舊版 iOS：去 Shortcuts 底部 <b>Automation</b><i class="zh">（自動化）</i> 分頁 → ＋ → <b>App</b> → <b>Clock</b><i class="zh">（時鐘）</i> → 剔 <b>Is Closed</b><i class="zh">（已關閉）</i> → <b>Run Immediately</b><i class="zh">（立即執行）</i> → 揀 MeowAlarm。</div>`],
   ["yeah", "⑤ 試一次！", "", () => `<ol><li>開 Clock App，set 一個 Weekdays 重複嘅起身鬧鐘</li><li>閂咗 Clock App</li><li>返嚟呢度，見到綠色「鬧鐘 ✓」就成功 🎉</li></ol><div class="tip">⚠️ 鎖屏撳「Skip」嘅鬧鐘我分唔出，會當佢仲會響。</div>`],
 ];
 let gi = 0;
@@ -590,6 +592,12 @@ $("ov").addEventListener("click", async e => {
   gi = Math.max(0, Math.min(GUIDE.length - 1, gi + (g.dataset.g === "next" ? 1 : -1))); drawGuide();
 });
 document.addEventListener("click", e => { if (e.target.closest("[data-guide]")) openGuide(0) });
+
+$("shareBtn").onclick = async () => {
+  const url = location.origin, text = "細佬同呀妹幫你倒數出門 🐱 喵喵出行：";
+  try { if (navigator.share) { await navigator.share({ title: "喵喵出行", text, url }); return } } catch (e) { if (e && e.name === "AbortError") return }
+  try { await navigator.clipboard.writeText(text + url); $("shareBtn").textContent = "Copied ✓" } catch (e) { $("shareBtn").textContent = url }
+};
 
 // ---------- views ----------
 let view = "";
