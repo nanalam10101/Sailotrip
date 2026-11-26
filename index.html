@@ -247,7 +247,15 @@ nav svg{width:24px;height:24px}
     <div class="stats" id="stats" style="margin-top:12px"></div>
     <div class="cal" id="cal"></div>
     <p class="muted">橙 = 準時　紅 = 遲到　斜紋 = 搭的士　灰 = 未記錄</p>
-    <img class="stk" id="rewardCat" style="width:150px;margin-top:16px" alt="">
+    <section class="log" id="shareBox">
+      <h2 style="margin-top:0">📤 分享成績</h2>
+      <p class="muted" style="margin:0 0 8px">揀圖上嘅主角，再撳分享去 WhatsApp／IG</p>
+      <div class="chips c3" id="heroChips"></div>
+      <div class="chips" id="sizeChips" style="margin-top:8px"><button type="button" data-size="post" class="on">📷 IG post／WhatsApp</button><button type="button" data-size="story">📱 IG Story</button></div>
+      <img id="sharePrev" alt="分享圖預覽" style="width:100%;border-radius:18px;margin-top:12px;border:1px solid var(--line)">
+      <button type="button" id="shareImg" class="pill" style="width:100%;justify-content:center;margin-top:12px;min-height:52px;background:var(--ginger);color:#fff;font-size:17px">📤 分享呢張圖</button>
+      <p class="muted" id="shareMsg" style="text-align:center"></p>
+    </section>
     <div class="card" style="background:var(--butter);margin-top:20px"><img src="/cats/thanks.webp" alt=""><div class="t"><strong>分享喵喵出行俾朋友</strong><small>佢哋嘅設定同鬧鐘資料只會存喺自己部手機同自己嘅 key，唔會同你混埋。</small><div class="act"><button type="button" id="shareBtn">分享 / Copy 網址</button></div></div></div>
   </section>
 </main>
@@ -485,8 +493,72 @@ function renderReward() {
   let html = ["一", "二", "三", "四", "五", "六", "日"].map(x => `<div>${x}</div>`).join("");
   for (let i = 0; i < 28; i++) { const x = new Date(start); x.setDate(start.getDate() + i); const l = S.log[dkey(x)]; const c = !l || l.off ? "" : l.taxi ? "taxi" : l.on ? "on" : "late"; html += `<div><i class="${c}"></i>${x.getDate()}</div>` }
   $("cal").innerHTML = html;
-  $("rewardCat").src = cat(st.streak >= 3 ? "cool" : st.noTaxi ? "yeah" : "wait");
+  drawShareUI();
 }
+
+// ---------- 分享成績圖 ----------
+let shareHero = "money", shareSize = "post", shareCanvas = null;
+const HEROES = {
+  money: { chip: "💰 慳錢", who: "細佬", stk: "cool", lab: "慳返的士錢", val: st => `$${st.saved.toLocaleString()}`, sub: st => `${st.noTaxi} 日冇搭的士`, say: "請我食罐罐啦！", ok: st => st.saved > 0 },
+  ontime: { chip: "⏰ 準時", who: "呀妹", stk: "yeah", lab: "連續準時", val: st => `${st.streak} 日`, sub: st => `總共準時 ${st.onTime} 日`, say: "型到爆！", ok: st => st.streak > 0 },
+  notaxi: { chip: "🚕 冇搭的士", who: "細佬", stk: "ok", lab: "冇搭的士", val: st => `${st.noTaxi} 日`, sub: st => st.saved ? `慳返 $${st.saved.toLocaleString()}` : "繼續加油", say: "繼續保持！", ok: st => st.noTaxi > 0 },
+};
+const imgCache = {};
+const loadImg = src => imgCache[src] || (imgCache[src] = new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src }));
+function rr(ctx, x, y, w, h, r, fill) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fillStyle = fill; ctx.fill() }
+async function drawShare() {
+  const st = stats(), H0 = HEROES[shareHero], has = H0.ok(st);
+  const W = 1080, H = shareSize === "story" ? 1920 : 1350, story = shareSize === "story";
+  const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
+  try { await Promise.all(["900", "700", "500"].map(w => document.fonts.load(`${w} 40px "Noto Sans TC"`))) } catch (e) {}
+  const F = (w, s) => `${w} ${s}px "Noto Sans TC", sans-serif`;
+  x.fillStyle = "#ffe98a"; x.fillRect(0, 0, W, H);
+  const cy = H * (story ? .3 : .3); x.fillStyle = "#ffe073";
+  for (let k = 0; k < 18; k++) { const a = k * Math.PI / 9; x.beginPath(); x.moveTo(W / 2, cy); x.lineTo(W / 2 + Math.cos(a) * 2200, cy + Math.sin(a) * 2200); x.lineTo(W / 2 + Math.cos(a + .12) * 2200, cy + Math.sin(a + .12) * 2200); x.fill() }
+  x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = "#3a2a20";
+  let y = story ? 300 : 90;
+  x.font = F(900, 64); x.fillText(has ? `${H0.who}讚你` : "第一步開始咗！", W / 2, y);
+  const im = await loadImg(cat(has ? H0.stk : "ok")); const ch = story ? 700 : 400, cw = im.width * ch / im.height;
+  x.drawImage(im, W / 2 - cw / 2, y + 50, cw, ch); y += 50 + ch + 10;
+  const say = `「${has ? H0.say : "聽日一齊準時出門！"}」`; x.font = F(900, 46); const tw = x.measureText(say).width;
+  rr(x, W / 2 - tw / 2 - 40, y, tw + 80, 96, 48, "#fff"); x.fillStyle = "#f08a3c"; x.fillText(say, W / 2, y + 50); y += story ? 170 : 130;
+  // 主角大卡
+  rr(x, 60, y, W - 120, 270, 44, shareHero === "money" ? "#bff0d9" : "#fff");
+  x.textAlign = "left"; x.fillStyle = "#8a7466"; x.font = F(700, 36); x.fillText(H0.lab, 110, y + 55);
+  x.fillStyle = "#3a2a20"; x.font = F(900, 100); x.fillText(has ? H0.val(st) : "0", 104, y + 140);
+  x.fillStyle = "#8a7466"; x.font = F(500, 32); x.fillText(has ? H0.sub(st) : "", 110, y + 228);
+  // 月曆點點（最近 4 星期）
+  const s0 = new Date(); s0.setHours(0, 0, 0, 0); s0.setDate(s0.getDate() - ((s0.getDay() + 6) % 7) - 21);
+  for (let i = 0; i < 28; i++) { const dd = new Date(s0); dd.setDate(s0.getDate() + i); const l = S.log[dkey(dd)];
+    x.fillStyle = !l || l.off ? "#e6d6be" : l.taxi ? "#e5486b" : l.on ? "#f08a3c" : "#f7a7b8";
+    x.beginPath(); x.arc(W - 110 - (6 - i % 7) * 44, y + 75 + Math.floor(i / 7) * 40, 14, 0, 7); x.fill() }
+  y += story ? 330 : 300;
+  // 其他有嘢嘅數字（細）
+  const others = Object.keys(HEROES).filter(k => k !== shareHero && HEROES[k].ok(st) && !(shareHero === "money" && k === "notaxi"));
+  others.forEach((k, i) => { const h = HEROES[k], bw = (W - 150) / 2, bx = 60 + i * (bw + 30);
+    rr(x, bx, y, bw, 140, 36, "#fff"); x.fillStyle = "#8a7466"; x.font = F(700, 30); x.fillText(h.lab, bx + 36, y + 44); x.fillStyle = "#3a2a20"; x.font = F(900, 60); x.fillText(h.val(st), bx + 32, y + 100) });
+  rr(x, 60, H - 150, W - 120, 100, 50, "#3a2a20"); x.textAlign = "center"; x.fillStyle = "#fff"; x.font = F(900, 40); x.fillText("喵喵出行 · sailotrip.vercel.app", W / 2, H - 98);
+  return c;
+}
+async function drawShareUI() {
+  const st = stats(), avail = Object.keys(HEROES).filter(k => HEROES[k].ok(st));
+  if (!HEROES[shareHero].ok(st) && avail.length) shareHero = avail[0];
+  $("heroChips").className = "chips " + (avail.length >= 3 ? "c3" : "");
+  $("heroChips").innerHTML = avail.length ? avail.map(k => `<button type="button" data-hero="${k}" class="${k === shareHero ? "on" : ""}">${HEROES[k].chip}</button>`).join("") : `<p class="muted" style="margin:0;grid-column:1/-1">記低第一日出門之後，就可以揀主角</p>`;
+  document.querySelectorAll("#sizeChips button").forEach(b => b.classList.toggle("on", b.dataset.size === shareSize));
+  try { shareCanvas = await drawShare(); $("sharePrev").src = shareCanvas.toDataURL("image/png") } catch (e) { $("shareMsg").textContent = "預覽整唔到，再試一次" }
+}
+$("heroChips").addEventListener("click", e => { const b = e.target.closest("[data-hero]"); if (b) { shareHero = b.dataset.hero; drawShareUI() } });
+$("sizeChips").addEventListener("click", e => { const b = e.target.closest("[data-size]"); if (b) { shareSize = b.dataset.size; drawShareUI() } });
+$("shareImg").onclick = async () => {
+  if (!shareCanvas) return;
+  const blob = await new Promise(r => shareCanvas.toBlob(r, "image/png"));
+  const file = new File([blob], "喵喵出行成績.png", { type: "image/png" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: "細佬同呀妹幫我準時出門 🐱 sailotrip.vercel.app" }); $("shareMsg").textContent = ""; return }
+  } catch (e) { if (e && e.name === "AbortError") return }
+  $("shareMsg").textContent = "呢部機唔支援直接分享：長按上面張圖 →「儲存到相片」，再喺 IG／WhatsApp 揀相";
+};
 
 // ---------- setup ----------
 let step = 1;
